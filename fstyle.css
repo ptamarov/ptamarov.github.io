@@ -28,15 +28,11 @@ body {
     margin-left: 25px;
     margin-right: auto;
   }
+  .navigation li a {
+    padding: 6px 4px;
+    font-size: 0.9rem;
+  }
 }
-
-/* Dark mode */
-
-/* .dark-mode {
-  background-color:#525252;
-  color: white;
-}
-   */
 
 h1,
 h2,
@@ -52,7 +48,6 @@ h1 {
   display: block;
   margin-left: auto;
   margin-right: auto;
-	width: 40%;
 }
 
 .inner {
@@ -65,6 +60,17 @@ h1 {
 .navigation {
   justify-content: center;
   display: flex;
+  /* justify-content: space-around;   */
+  align-items: center;            
+  list-style: none;
+  flex-wrap: wrap;
+  padding-left: 0px;
+}
+
+.navigationjus {
+  display: flex;
+  justify-content: space-around;  
+  align-items: center;            
   list-style: none;
   flex-wrap: wrap;
   padding-left: 0px;
@@ -87,6 +93,10 @@ h1 {
   text-decoration: none;
 }
 
+.navigation li a:hover {
+  color: #1611B9;  
+}
+
 .subnavigation {
   display: none;
   position: absolute;
@@ -106,8 +116,7 @@ a {
   color:#1611B9;
 } 
 
-/* Nice animatinons by Gabriel Cojea*/
-
+/* Nice animations by Gabriel Cojea */
 a::before{
   content: '';
   position: absolute;
@@ -118,10 +127,6 @@ a::before{
   background-color:#1611B9;
   transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
 }
-
-/* .dark-mode .underline::before{
-  background-color: #cdcdcd;
-} */
 
 @media (hover: hover) and (pointer: fine) {
   a:hover::before{
@@ -155,4 +160,25 @@ html{
 
 #myBtn:hover {
   color: rgb(0, 0, 0); /* Text color on hover */
+}
+
+
+.centered-table {
+  margin-left: auto;
+  margin-right: auto;
+  border-collapse: collapse;
+}
+
+.centered-table td:nth-child(2),
+.centered-table th:nth-child(2) {
+  text-align: right;
+}
+
+  .centered-table thead tr {
+    border-bottom: 1px solid #000;
+    border-top: 2px solid #000;
+  }
+
+  .centered-table tbody tr:last-child {
+  border-bottom: 2px solid #000;
 }
