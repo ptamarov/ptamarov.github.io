@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>January 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+    </style>
+       <ul id="navbar" class="navigationjus">
+  
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+      <!-- <li>
+        <a href="nothing.html" class="navigation">Next month</a>
+      </li> -->
+    </ul>
+
+    <h2 class="aligncenter">January blurb: European payoffs in the Hull--White model</h2>
+    <p>
+      I recently stumbled upon <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3252805">this paper</a>
+      where the author gives a closed form for the Arrow--Debreu (also known as
+      Green's function) of the Hull--White model. The mathematics in it seem too
+      complicated for such a simple Gaussian model, but it seems that the author
+      has more ambitious goals in mind (like applying the methods there to more
+      complex models) which justify the approach. Having said this, let me show
+      you a very simple way to compute this function that only depends on
+      knowing how to compute the conditional law of a two-dimensional Gaussian. 
+      </p>
+      <p>
+      Following the 
+      <a href="./202601.html">previous post</a>, if we consider a short rate
+      process of the form $r(t) = x(t) + f(0,t) + \frac 12 v'(t)$ with $ dx = -k x dt +
+      \sigma dw$ where the deterministic coefficients depend only on time, then
+      we want to compute the function $$ U(t,x) = \mathbb E\left( e^{-\int_0^t
+      r(s)ds} \mid x(t) = x\right) p_t(x)$$ where $p_t(x)$ is the density of
+      $x(t)$. The reason is quite simple: this function acts a kernel to compute
+      the payoff of any European claim contigent on the state of $r$ at some
+      future time $T$, since (more or less by definition) $$ \mathbb E\left(
+      e^{-\int_0^t r(s)ds} f(x(t))\right) = \int_{\mathbb R}U(x,t) f(x)dx. $$
+      Let us prove that (using the notation in the <a
+      href="./202601.html">previous post</a>), we have that $$U(t,x) =
+      \frac{P(0,t)}{\sqrt{2 \pi V(0,t)}} \exp\left(-\frac12\frac{ (x +\frac 12
+      v'(t))^2}{V(0,t)}  
+	\right).$$
+    </p>
+
+    <p>
+      We use the following elementary fact: if $X$ and $Y$ are Gaussian with 
+	    mean zero and covariance $c$ and variances $\sigma_X$ and $\sigma_Y$. Then 
+	    $$ 
+	        \mathbb E(e^{-Y} \mid X = x) =  
+	            \exp\left(-\frac12\frac{c^2 + 2c x}{\sigma_X^2}  + \frac 12 \sigma_Y^2\right).$$ 
+      This follows by using the joint law of $(X,Y)$ to derive the conditional law 
+      of $Y\mid X=x$, and then apply it to the computation above: this variable is 
+      Gaussian with mean $cx/\sigma_X^2$ and variance $\sigma_Y^2 - c^2/\sigma_X^2$. 
+      Evaluating the moment generating function of this Gaussian at $t=-1$ gives 
+      us what we want.
+    </p>
+
+    <p>
+      To apply this result, we just need to go back to the previous post and
+      recall the that $y(t) = \int_0^t x(s)ds$, and that $x(t)$ and $r(t)$
+      differ by the forward rate term and the convexity term $v'(t)$. Thus, we
+      can incorporate  the factor $P(0,t) e^{-\frac 12 v(t)}$ that appears after
+      integrating $r(t)$ later, and focus on $$ \mathbb E(e^{-y(t)} \mid x(t) =
+      x).$$ From the previous post it follows that $x(t)$ and $y(t)$ are both
+      Gaussian of mean zero, with variance $V(0,t)$ and $v(t)$, respectively.
+      Moreover, $\mathbb E(x(t) y(t))$ is just the derivative of half the
+      variance of $y(t)$, which we computed to be $\frac 12 v'(t)$, the
+      convexity term we just mentioned.
+      </p>
+
+      <p> Applying the lemma, we get that 
+       $$ \mathbb E\left( 
+	e^{-\int_0^t x(s)ds} \mid x(t) = x \right) = 
+   \exp\left(-\frac18\frac{ v'(t)^2 + 4 v'(t) x}{V(0,t)}  + \frac 12 v(t)\right)$$
+
+   The last term in the exponential obviously cancels with the term in $r(t)$
+   coming from integrating $\frac 12 v'(t)$ (recall that $y(t)$ has variance
+   $v(t)$!). On the other hand, the density of $x(t)$ is 
+   
+    $$p_t(x) =
+     \frac{1}{\sqrt{2 \pi V(0,t)}} \exp\left( -\frac 12 \frac{x^2 }{ V(0,t)}
+   \right) $$ 
+   
+   so multiplying this with the above expression, we get 
+  
+  $$ e^{-\frac 12 v'(t)} \mathbb E\left( 
+	e^{-\int_0^t x(s)ds} \mid x(t) = x \right)p_t(x)  = \\
+  \frac{1}{\sqrt{2 \pi V(0,t)}} \exp\left(
+		-\frac 18 \frac{ v'(t)^2 + 4 v'(t) x + 4x^2 }{ V(0,t)}
+	\right). $$
+  The only thing left to do is to notice the denominator is $(v'(t)+2x)^2$ 
+  and that the term $f(0,t)$ contributes the term $P(0,t)$ to the integral.
+  The takeaway is you can now use Gaussian quadrature (or your favourite 
+  quadrature method) to quickly compute European payoffs using $U(t,x)$. 
+      </p>
+    </body>
+</html>
