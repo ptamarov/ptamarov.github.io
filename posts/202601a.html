@@ -45,10 +45,13 @@
       \sigma dw$ where the deterministic coefficients depend only on time, then
       we want to compute the function $$ U(t,x) = \mathbb E\left( e^{-\int_0^t
       r(s)ds} \mid x(t) = x\right) p_t(x)$$ where $p_t(x)$ is the density of
-      $x(t)$. The reason is quite simple: this function acts a kernel to compute
+      $x(t)$. The reason is quite simple: this function acts as a kernel to compute
       the payoff of any European claim contigent on the state of $r$ at some
-      future time $T$, since (more or less by definition) $$ \mathbb E\left(
-      e^{-\int_0^t r(s)ds} f(x(t))\right) = \int_{\mathbb R}U(x,t) f(x)dx. $$
+      future time, since conditioning on the value of $x(t)$, we have that 
+        $$ \mathbb E\left(
+      e^{-\int_0^t r(s)ds} f(x(t))\right) = \int_{\mathbb R}U(t,x) f(x)dx. 
+      $$
+
       Let us prove that (using the notation in the <a
       href="./202601.html">previous post</a>), we have that $$U(t,x) =
       \frac{P(0,t)}{\sqrt{2 \pi V(0,t)}} \exp\left(-\frac12\frac{ (x +\frac 12
