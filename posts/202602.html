@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>February 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+    </style>
+       <ul id="navbar" class="navigationjus">
+         <li>
+           <a href="/202601a.html" class="navigation">Previous post</a>
+         </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+      <!-- <li>
+        <a href="/202601a.html" class="navigation">Next post</a>
+      </li> -->
+    </ul>
+
+    <h2 class="aligncenter">February: discovering Vanna--Volga pricing</h2>
+
+    <h3>1. Beyond Black--Scholes and delta-neutral positions</h3>
+    <p>
+      I will assume familiarity with Black--Scholes and Black '76 pricing models.
+      In order to keep things simple, we will work with the forward premium and 
+      the Black '76 model formula, using the time-to-maturity rescaled volatility 
+      $v = \sqrt{\tau}\sigma$ and the log-moneyness $x = \log \frac FK$, and set 
+      $$ 
+        C(x,v) = F \Phi\left( \frac xv + \frac v2 \right) - K \Phi\left(  \frac xv - \frac v2 \right).
+      $$
+      For the moment, we fix the time to maturity $\tau$ and the forward $F$.
+      It is well known that, if we consider market quotes $C_{\mathsf{MKT}}(x)$ 
+      at different moneyness levels, we can imply a unique $v(x)$ such that 
+      $C_{\mathsf{MKT}}(x) = C(x, v(x))$. Looking at real market data for European options 
+      on equity indices or stocks, we can make the following observations:
+      <ul>
+        <li>
+          For a fixed forward and valuation date, $v(x)$ is not constant with 
+          $x$. In fact, we see that $v(x) > v(0)$ when $x < 0$, and that $v(x) < v(0)$ 
+          when $x > 0$.  In other words, puts are sold at a premium and calls are 
+          sold at discount from the prices implied by a model with constant volatility 
+          equal to $v(0)$.
+        </li>
+        <li>
+          The value of $v(0)$ (and in fact of the whole function $v$) is random. 
+          Note however that there are very restrictive and complex conditions relating 
+          the different values of $v(x)$ along $x$ and along $\tau$. However, note that 
+          in the price dimension, the condition over $x$ is simpler: $C(x,v)$
+          is convex in $K$, and it must be increasing in $\tau$. 
+        </li>
+      </ul>
+    </p>
+
+    <p>
+      The Black--Scholes pricing model produces a fair price assuming we are
+      able to perfectly hedge our position using the underlying. In particular,
+      it assumes that $v(x)$ is constant in $x$ and $\tau$, and the hedging
+      approach will miss the impact of these changes in the position value. The
+      good news is that the replication approach of Black and Scholes can be
+      used to figure out how to correctly hedge the volatility risk: we will
+      assume that (as observed) the parameter $\sigma$ is stochastic.  More
+      precisely, if we assume that spot follows a log-normal model where, quite
+      crucially, volatility is stochastic, the resulting PnL decomposition
+      contains new terms capturing exposure to:
+      <ul>
+        <li>
+          changes in the position value due to changes in implied volatility,
+        </li>
+        <li>
+          changes in the vega of the position due to changes in implied volatility, 
+        </li>
+        <li>
+      changes in the vega of position due to movement of the underlying.
+        </li>
+      </ul>
+    
+      </p>
+
+     <h3>2. Hedging volatility risk using vega, vanna and volga</h3>
+
+      <p>
+      The idea of the Vanna--Volga model is to use three options to zero out
+      these risks on top of the underlying: options must be hedged with options.
+      Writing out the hedging equation $d\Pi = dC - w\cdot dH$ where $H$ is our
+      hedging portfolio and $w$ is the 4-vector of weights, we will obtain a
+      linear system $Aw = b$ with three equations and three unknowns (the option
+      weights). The columns of $A$ are the vega, vanna and volga of the options
+      (priced with the constant Black--Scholes model, using some pre-selected 
+      volatility level $v_0$), while $b$ is the same
+      vector for our position. It turns out that, for a call (or put) option, 
+      we can compute these by
+      $$
+    \mathsf{Vega}(x,v_0)            
+            = F \varphi\left(\frac x {v_0} + \frac {v_0}2\right),\\
+  \frac{\mathsf{Volga}(x,v_0)}{\mathsf{Vega}(x,v_0)} 
+            =
+                \frac{1}{{v_0}} \cdot  \left(\frac {x^2}{{v_0}^2} - \frac {{v_0}^2}4\right), \\
+  \frac{\mathsf{Vanna}(x,v_0)}{\mathsf{Vega}(x,v_0)} 
+        = -\frac{1}{F{v_0}} \left(\frac x {v_0} - \frac {v_0} 2\right).
+    $$
+      Let us introduce useful notation and write $\mathsf{VolRisk}(x,v_0)$ for  
+      vector $(\mathsf{Vega}(x,v_0), \mathsf{Vanna}(x,v_0), \mathsf{Volga}(x,v_0))$.
+      In particular, $b$ is the risk vector of our position (at current log-moneyness $x$).
+      </p>
+    <p>
+    There are two important observations that we will make: first, both volga 
+    and vanna are multiples of vega and, second, these multiples are polynomials in $x$.
+    The Vanna--Volga model, in a nutshell, effectively and accurately 
+    estimates the vega-weighted mispricing
+    $$\frac{C^{\mathsf{MKT}}(x) - C(x,v_0)}{\mathsf{Vega}(x,v_0)}$$
+    around $x=0$ as a degree two polynomial in $x$. 
+    The coefficients are uniquely determined by the condition that this 
+    is zero for our three options. What is perhaps more surprising is how 
+    well a degree two polynomial approximates this for small $x$! In the image 
+    below, we show the anchor points, using a 
+    fictitious volatility smile.
+
+    <div style="text-align: center">
+      <img
+            src='./images/VannaVolga_CostPerVega.png'
+            width="500vw"/>
+    </div>
+
+    </p>
+
+     <p>
+      <b>Fundamental result.</b> 
+    There always exist 
+    a unique 3-vector $y$, which we will call the Vanna--Volga weight 
+    vector, such that 
+    $$C^{\mathsf{MKT}}(x) - C(x,v_0) = y \cdot \mathsf{VolRisk}(x,v_0)$$
+    holds for our three hedging options. 
+    </p>
+
+    <p><em>Proof.</em>
+     A degree two polynomial is uniquely determined by three values, so 
+     we can always find such coefficients. ||
+    </p>
+
+    <h3>3. Computing the Vanna--Volga weights</h3>
+    <p>
+    In order to keep the post short and not too technical, we will only state 
+    and prove the following. We will choose $v_0$ to be the ATMF volatility, 
+    that is, $v_0 = v(0)$. We will see later that this is relatively stable,
+    so it is not a bad choice of reference flat volatility to follow.
+    </p>
+
+    <p>
+      <b>Lemma 1.</b> <em>(Model weights pricing)</em>
+      Suppose that $(x_1,x_2,x_3)$ are three different log-moneyness points, and
+      let $c$ be the $3$-vector with $$c_i = C^{\mathsf{MKT}}(x_i) -
+      C(x_i, \sigma_{\mathsf{ATM}}).$$ Then $y$ is the unique
+      solution to the system $A^\top y = c$ where $A$ is the matrix defined 
+      before for $(x_1,x_2,x_3)$.
+      </p>
+
+    <p>
+      <em>Proof.</em> The equation $A^\perp y = c$ says precisely that 
+      the equation above holds for $x_1, x_2$ and $x_3$. ||
+    </p>
+     
+     <p>
+      <b>Lemma 2.</b><em>(Portfolio weights pricing)</em>
+      Suppose that $(x_1,x_2,x_3)$ are three different log-moneyness points, 
+      and let $w$ be the unique solution to the system $Aw = b$. Then we also 
+      have that 
+      $$C^{\mathsf{MDL}}(x) = C(x,v_0) + c^\perp w.$$
+      In other words, the model price is given by the naive Black--Scholes quote 
+      plus the weighted excess cost of the three hedging options against their 
+      naive Black--Scholes quote. 
+      </p>
+
+      <p><em>Proof.</em>
+      We have that $y^\perp b= y^\perp Aw = c^\perp w$. ||
+      </p>
+
+    <h3>4. A concrete example and final comments</h3>
+
+    <p>
+      Below, we show the result of computing the Vanna--Volga model prices using
+      the same synthetic volatility smile, which we match at three points. In more
+      extreme scenarios, the fit may not look as good, but it should still be very
+      good close to $x=0$. Note that in practice, one can directly observe market
+      quotes for options, compute the implied volatility smile and fit it to a
+      robust parametric form using the same three targets, like that of Gatheral
+      and Jacquier <a href="https://arxiv.org/abs/1204.0646">here</a>. 
+    </p>
+    
+    <p>
+      The point of the above computations is rather that one can use the
+      <em>same</em> replication and no-arbitrage arguments of Black--Scholes to
+      obtain a fairly good model around $x=0$ and, at the same time, quickly
+      obtain hedge ratios. It is important to note that the vega factor will 
+      decay quite quickly, and that the smile will eventually fall to ATM levels 
+      due to this. In other words, the model fails at extreme regions of the wings, 
+      so one must look for an alternative treatment here; this is in particular 
+      achieved by parametric approaches like the SVI parametrization cited above,
+      which make sure that at extreme strikes the volatility behaves according 
+      to Lee's <a href="https://math.uchicago.edu/~rogerlee/moment.pdf">moment 
+      formula</a>. But that is another story, for another post. 
+   <br>
+   <br>
+   <br>
+ <div style="text-align: center">
+   <img
+   src='./images/VannaVolga_MarketQuotes.png'
+   width="500vw"/>
+   <br>
+     <div class="caption">
+       <b>Figure 1.</b>  Market and model premium quotes, and the 
+       three anchor points used to fit the model. The absolute error is shown in 
+       green.
+      </div>
+  </div>
+   <br>
+   <br>
+   <br>
+     <div style="text-align: center">
+      <img
+            src='./images/VannaVolga_VolQuotes.png'
+            width="500vw"/>
+               <br>
+               <div class="caption">
+                 <b>Figure 2.</b> Market and model volatility quotes, and 
+                 the absolute error in basis points. The implied volatility of the model was 
+                 back out from the quotes provided by the model; it is able to recover the 
+                 original synthetic smile with very good precision.
+                </div>
+    </div>
+
+    <h3>References</h3>
+
+    For further 
+      reading on the Vanna--Volga model, see:
+      <ol>
+        <li>
+          <a href="https://www.deriscope.com/docs/The_Vanna_Volga_method_for_implied_volatilities_Castagna_Mercurio_2007.pdf">
+         <em>The Vanna-Volga method for implied volatilities</em></a>; A. Castagna and F. Mercurio;
+        </li>
+        <li>
+          <a href="https://www.econstor.eu/bitstream/10419/40192/1/573774811.pdf"><em>Vanna-volga pricing</em></a>; U. Wystup;
+        </li>
+        <li>  
+          <a href="https://arxiv.org/abs/0904.1074"><em>Vanna-Volga methods applied to FX derivatives</em>; F. Bossens,
+          G. Rayée, N. S. Skantzos and G. Deelstra.</a>
+        </li>
+        <li>
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=1186383"><em>Generalized Vanna-Volga method and its applications</em></a>;
+          Y. Shkolnikov.
+        </li>
+      </ol>
+    </p>
+
+    
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>
