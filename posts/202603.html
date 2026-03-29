@@ -70,13 +70,13 @@
       </li> -->
     </ul>
 
-    <h2 class="aligncenter">March: automatic adjoint differentiation</h2>
+    <h2 class="aligncenter">March: algorithmic adjoint differentiation</h2>
 
     <p>
 
       In this post I want to discuss a computational technique that is crucial
       to speed up the computation of gradients in the context of Monte Carlo
-      simulations: automatic adjoint differentiation. The immediate selling
+      simulations: adjoint algorithmic differentiation. The immediate selling
       point is easy to state: although conventional bump-and-recompute methods
       translate to a computational cost that scales linearly with the number
       $n$ of simulation (or model) parameters, AAD delivers a near-constant cost
@@ -220,7 +220,7 @@
     <p>
 
        What we have described is (manual) <i>adjoint differentiation</i>. Before 
-       going into the details of <i>automatic</i> adjoint differentiation, and 
+       going into the details of <i>algorithmic</i> adjoint differentiation, and 
        how to use it during Monte Carlo simulations, let us
        consider a concrete example to understand how this works and how adjoints
        propagate along the calculation graph. The famous Black--Scholes formula
