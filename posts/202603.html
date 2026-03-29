@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>March 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+
+    .block {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .block-header {
+      background: #313244;
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cba6f7;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    pre {
+      margin: 0;
+      padding: 1rem 1.25rem;
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Syntax highlight classes */
+    .kw  { color: #cba6f7; }   /* keywords */
+    .bi  { color: #89b4fa; }   /* builtins / types */
+    .fn  { color: #89dceb; }   /* function names */
+    .st  { color: #a6e3a1; }   /* strings */
+    .cm  { color: #6c7086; font-style: italic; } /* comments */
+    .nm  { color: #fab387; }   /* numbers */
+    .op  { color: #f38ba8; }   /* operators */
+    .dc  { color: #f9e2af; }   /* decorators */
+    .cl  { color: #f9e2af; }   /* class names */
+  </style>
+  <ul id="navbar" class="navigationjus">
+         <li>
+           <a href="./202602.html" class="navigation">Previous post</a>
+         </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+      <!-- <li>
+        <a href="/202601a.html" class="navigation">Next post</a>
+      </li> -->
+    </ul>
+
+    <h2 class="aligncenter">March: automatic adjoint differentiation</h2>
+
+    <p>
+
+      In this post I want to discuss a computational technique that is crucial
+      to speed up the computation of gradients in the context of Monte Carlo
+      simulations: automatic adjoint differentiation. The immediate selling
+      point is easy to state: although conventional bump-and-recompute methods
+      translate to a computational cost that scales linearly with the number
+      $n$ of simulation (or model) parameters, AAD delivers a near-constant cost
+      to compute both the output scalar of the simulation and all $n$
+      derivatives with respect to the simulation parameters. In other words, if
+      the runtime of the simulation routine is roughly $T$, then AAD will
+      compute the output and derivatives in around $cT$, where $c$ is a
+      constant; we will clarify what the magnitude of $c$ is later on.
+
+    </p>
+      <h3>1. Problem statement and introduction</h3>
+      <p> 
+        The set-up of AAD is relatively simple. Assume that we have a
+        sample-generating model that depends on some vector parameter $\theta
+        \in\mathbb R^n$; let us denote it and its distribution by $X(\theta)$.
+        I will assume that we are sampling a time-homogeneous
+        distribution, and that we want to compute $$\varphi(\theta) = \mathbb
+        E(f(X(\theta))) \in \mathbb R$$ for some scalar function $f$. In full
+        generality, one may be interested in some stochastic process and
+        $\varphi(\theta)$ could depend on samples of this process at different
+        times but, for the sake of simplicity, I will ignore this situation;
+        this mostly saves us notational burden, but otherwise does not create
+        any issues, in the sense that all that comes below applies, <i>mutatis
+        mutandis</i>, to the case in which $\varphi(\theta)$ is instead the
+        result of, say, applying a Euler discretisation to some process defined
+        by a stochastic differential equation.
+      </p>
+
+      <p>
+        The question is then: how can we compute $\nabla \varphi(\theta)$? A
+        very robust and foolproof approach is <i>bumping</i>: we numerically
+        approximate the gradient components by replacing $\theta_i$ by $\theta_i
+        + \delta$ one at a time, and re-running the simulation. The cost of this
+        is obviously unacceptable when the dimension $n$ of $\theta$ is large,
+        as it may very well be the case when we are considering a model
+        calibrated to an implied volatility surface over multiple expiry and
+        strike points. In the context of machine learning, there is no
+        simulation to re-run, but rather a forward pass to perform, and the
+        output of interest is the loss function. A modern neural network may
+        have millions of parameters, so computing the gradient of the loss by
+        bumping each one individually would require millions of forward passes,
+        which is clearly infeasible. The good news is that, by virtue of the
+        chain rule, and the fact that the computation graph of a network
+        consists mostly of linear and simple non-linear operations, one can
+        recover the gradient with respect to all parameters simultaneously by
+        retracing the computation backwards in a single pass. The computational
+        cost of this backward pass is roughly only a constant multiple of the
+        forward pass. The idea in the context of Monte Carlo simulations is
+        completely analogous!
+      </p>
+
+      <p>
+         Let us assume that we want to
+        compute the gradient of $z = f(x_1,\ldots,x_n)$ and that we write this
+        function as $z = h(y_1,\ldots,y_m)$ where $y_i = t_i(x_1,\ldots, x_n)$.
+        In other words, we have broken down the calculation of $z$ into $m$ 
+        previous nodes determined by $y$, which are computed in terms of the 
+        vector $x$. 
+        It is not a bad idea to make a small tree-like shaped drawing to
+        understand the relation between $z$, $f$, $h$ and the $t_i$. The chain
+        rule tells us that 
+        $$ 
+          \frac{\partial z}{\partial x_i} = \sum_{j=1}^m \frac{\partial
+          z}{\partial y_j}  \frac{\partial y_j}{\partial x_i}.$$ 
+          
+          The takeaway: if we have precomputed the derivatives of $z =
+          h(y_1,\ldots,y_m)$ with respect to $y$, and those of $y_j =
+          t_j(x_1,\ldots, x_n)$ with respect to $x_i$, we are a single
+          vector-to-scalar operation away from computing $\frac{\partial
+          z}{\partial x_i}$. Although this is a local computation, it scales
+          well: our simulation will consist of many successive operations like
+          addition, multiplication, division and, perhaps, a few special
+          functions with known derivatives, so that the recipe above is
+          straightforward to follow. Thus, from now on, as in the context of
+          machine learning, we will think of our simulation as a sequence of
+          computations that iterate the procedure above: from our original
+          parameters $\theta$ we will produce a directed acyclic graph of
+          computations that will, sample by sample, produce the final estimate
+          of $\varphi(\theta) = \mathbb E( f(X(\theta)))$. 
+        </p> 
+
+      <h3>2. Enter adjoints</h3>
+        <p>
+        In order to continue our analysis, let us fix our output of interest $z$
+        and, for any intermediate computation $y$, let us write $y^*$ for
+        $\frac{\partial z}{\partial y}$, which we call the <i>adjoint</i> of
+        the node $y$. Of course, we have that $z^* = 1$, and we are interested in
+        computing $\theta_i^*$ for each $i = 1,\ldots, n$. The display above
+        then says that, for any two intermediate set of variables $x$ and $y$
+        related by $y_i = t_i(x_1,\ldots, x_n)$, we have that 
+        \[  
+          x_i^*  = \sum_{j=1}^m 
+            y_j^*  \frac{\partial y_j}{\partial x_i}.
+            \]
+        The analysis we carried out reveals that whenever $w$ is a node in our 
+        calculation graph, we can compute $w^*$ by accumulating the adjoints 
+        of the nodes that are <i>children</i> of $w$ in the calculation graph, 
+        in the sense that they use the output of $w$ in their own calculation.
+        Thus, we can use the above <i>local</i> formula to obtain a globally
+        correct formula: for any $w$, we have that 
+                        $$ 
+          w^*  = \sum_{w\rightarrow y}
+            y^*  \frac{\partial y}{\partial w}.
+           \quad\quad\text{(1)} $$
+          This gives us the correct way to traverse and compute adjoints in 
+          our calculation graph. Once the calculation of $z$ is done:
+          <ol>
+            <li>Initialize $z^* =1$.</li>
+            <li>Follow the computation in the reverse order of 
+              the forward computation (also known as a topological sort of the graph).</li>
+            <li>Whenever a node is visited, use (1) to accumulate at the adjoint of its 
+              parents. 
+             </li>
+             <li> Continue until the target leaf nodes $\theta_1,\ldots,\theta_n$ are reached.</li>
+          </ol> 
+          
+          There is, of course, one catch: we must precompute (or lazily
+          compute) the derivatives appearing in (1) as we move through the
+          graph. This is more of an implementation issue (though not a minor
+          one) and reveals why AAD performs this process in constant time with
+          respect to the original work done by the simulation: if we assume that
+          the parent set of a node is of size at most $C$, then when reversing
+          through the graph, we will only do at most $C$ computations at each
+          node, consisting of addition and multiplication, plus the overhead of
+          (pre)computing the derivatives at each node. In practice, when we are
+          dealing with binary and unary functions, it turns out that $c$ is a
+          constant in $[3,4]$. This estimate goes back to the work of Griewank,
+          and assumes that the dominant operations are cheap arithmetic
+          operations, and that memory access for the tape is efficient. When
+          more expensive operations are required and in real applications, 
+          where the tape can grow to
+          hundreds of thousands of nodes per path, driving up memory usage and
+          cache pressure during the backward sweep, 
+          the measured overhead is often higher. Checkpointing strategies
+          (recomputing parts of the forward pass rather than storing them) can
+          recover some of that cost at the expense of a second forward sweep.
+
+      </p>
+
+     <h3>3. A concrete example: the Black--Scholes formula</h3>
+    <p>
+
+       What we have described is (manual) <i>adjoint differentiation</i>. Before 
+       going into the details of <i>automatic</i> adjoint differentiation, and 
+       how to use it during Monte Carlo simulations, let us
+       consider a concrete example to understand how this works and how adjoints
+       propagate along the calculation graph. The famous Black--Scholes formula
+       says that the forward premium price of a $T$-maturity call struck at $K$,
+       written on some underlying with forward $F$, is equal to 
+       \[ 
+        C =  F \Phi(z_+) - K \Phi(z_-) \] 
+        where $z_\pm = \frac{z}{v} \pm \frac v2$ and $z = \log\frac FK$ 
+        and $v=\sqrt{T}\sigma$, where $\sigma$ is the constant lognormal volatility.
+    </p>
+        <div style="text-align: center">
+        <img
+            src='./images/dagbs.png'
+            width="250vw"/>
+               <br>
+               <div class="caption">
+                 <b>Figure 1.</b>  The directed acyclic calculation graph 
+                 for the Black--Scholes formula.
+                </div>
+       </div>
+
+       <p>
+       Following the previous discussion, let us consider the following 
+       order (and its reverse) for the nodes in the figure: left to right, 
+       and top to bottom, so the order goes $K$, $F$, $\ldots$, $z$, $v$, $\ldots$, 
+       $\nu$. Note that I am making the (perhaps pedantic) distinction between 
+       $\nu$ (the node calculating $C$) and the output $C$ itself. Let us now follow 
+       the recipe to compute $\sigma^*$, the option vega. We begin at $\nu^* = 1$, 
+       and then compute $\Phi_+^* = F$ and $\Phi_{-}^* = -K$; these are easy. 
+       Moving on to $z_\pm$, we have only one child, and we get 
+       $$z_+^* = F \varphi(z_+) \qquad z_{-}^* = -K \varphi(z_-).$$
+       Then, $v$ has two children, and we get 
+       $$ v^* = z_+^*  \left(-\frac{z}{v^2} + \frac 12\right) + 
+       z_-^*  \left(-\frac{z}{v^2} - \frac 12\right). $$
+       The final computation is $\sigma^* = \sqrt{T} v^*$. This is of course 
+       enough for a computer, but just to verify that our algebra checks out, 
+       we can compute that $ F \varphi(z_+) = K \varphi(z_-) $ so we get that 
+              $$ \sigma^* =\sqrt{T} F \varphi(z_+) \left\{ \left(-\frac{z}{v^2} + \frac 12\right) + 
+               \left(\frac{z}{v^2} + \frac 12\right) \right\} = \sqrt{T} F \varphi(z_+). $$
+        Note that we ignored the node $z$, because $\sigma$ is not a parent of it. 
+        
+    </p>
+
+    <h3>4. How do we make this automatic?</h3>
+
+    <p>
+    The approach that we follow is a simplified version of what is done in
+    Savine's book. We will build a number class that maintains a reference to a
+    node, and a tape that will record a new node for each new number we create
+    during some operation. In the context of a Monte Carlo simulation, we will
+    begin with a fresh path and our simulation parameters as leaves, and record
+    our operations in the tape. Once we are done, we will back-propagate through
+    the tape, record the adjoints and repeat this for all paths. Because this
+    post is not really about optimizing this process, I will ignore the crucial
+    memory management details necessary for a production-quality implementation,
+    and only focus on the broad components that will allow us to demonstrate
+    that the implementation works. 
+    </p>
+
+    <div class="block">
+  <pre><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">node</span>:
+    arity:    <span class="bi">int</span>
+    adjoint:  <span class="bi">float</span>
+    partials: <span class="bi">list</span>[<span class="bi">float</span>]
+    parents:  <span class="bi">list</span>[<span class="cl">node</span>]
+    tape:     <span class="bi">tape</span>
+
+    <span class="kw">def</span> <span class="fn">propagate</span>(self):
+        <span class="kw">if</span> self.arity <span class="op">==</span> <span class="nm">0</span> <span class="kw">or</span> self.adjoint <span class="op">==</span> <span class="nm">0.00</span>:
+            <span class="kw">return</span>
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(self.arity):
+            self.parents[i].adjoint <span class="op">+=</span> self.partials[i] <span class="op">*</span> self.adjoint</pre>
+</div>
+
+    <p>
+      First, we define a node as in the code block above, which has five
+      attributes: its arity, its own adjoint, its own partial derivatives with
+      respect to its parent nodes, and references to its parent nodes and the
+      tape it is recorded in. The only method it has implements equation (1): to
+      propagate through a node, simply push its partials and adjoint to each of
+      its parent nodes. In tandem, we will use a number class, which will
+      overload the usual arithmetic operations, while recording the derivatives
+      at each node in an eager way:
+</p>
+
+
+<!-- Block 5: number — arithmetic operators -->
+<div class="block">
+  <pre><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">number</span>:
+    value: <span class="bi">float</span>
+    node:  <span class="cl">node</span>
+
+    <span class="kw">def</span> <span class="fn">backprop</span>(self) <span class="op">-></span> <span class="bi">None</span>:
+        self.node.propagate()
+
+    <span class="kw">def</span> <span class="fn">__add__</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:             
+            <span class="kw">return</span> self.add(other)
+        <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):        
+            <span class="kw">return</span> self.add_scalar(other)
+
+    <span class="kw">def</span> <span class="fn">__sub__</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:            
+                <span class="kw">return</span> self.sub(other)
+        <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):        
+                <span class="kw">return</span> self.add_scalar(<span class="op">-</span>other)
+
+    <span class="kw">def</span> <span class="fn">__mul__</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:             
+            <span class="kw">return</span> self.mul(other)
+        <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):        
+            <span class="kw">return</span> self.mul_scalar(other)
+        assert False
+
+    <span class="kw">def</span> <span class="fn">__truediv__</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:             
+            <span class="kw">return</span> self.div(other)
+        <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):        
+            <span class="kw">return</span> self.div_scalar(other)
+        assert False
+
+    <span class="kw">def</span> <span class="fn">__rmul__</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">return</span> self <span class="op">*</span> other
+
+    <span class="kw">def</span> <span class="fn">__neg__</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(<span class="op">-</span>(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1.00</span>
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">__inv__</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(<span class="nm">1</span> <span class="op">/</span> (self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1</span> <span class="op">/</span> self.value<span class="op">**</span><span class="nm">2</span>
+        <span class="kw">return</span> num</pre>
+</div>
+
+<p>Tape class, which will simply hold the nodes, seed the calculation, and
+backpropagate for every single Monte Carlo path calculation, is straightforward
+to define. It also acts as a factory to create either new leaves, or new nodes
+out of existing ones. The <span class="fn">new_leaf</span> function is not just
+a convenience function; as it does not put the leaves on tape so as to accumulate 
+their adjoints over all paths; in a real production code, the leaves would live in 
+the tape, but the tape would be marked so as to backpropagate and clear the 
+memory usage up to but excluding the leaf nodes. Note also that
+backprop does not zero the adjoints before traversing the tape. Correctness here
+relies on the fact that a fresh set of node objects, where adjoints are initialized
+to zero, is created each path. In a production implementation where node memory
+is reused across paths explicitly zeroing all adjoints before each 
+backpropagation cycle is a crucial step. 
+  </p>
+
+  <div class="block">
+  <pre><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">tape</span>:
+    nodes: <span class="bi">list</span>[<span class="cl">node</span>]
+
+    <span class="kw">def</span> <span class="fn">seed</span>(self) <span class="op">-></span> <span class="bi">None</span>:
+        self.nodes[<span class="op">-</span><span class="nm">1</span>].adjoint <span class="op">=</span> <span class="nm">1.00</span>
+
+    <span class="kw">def</span> <span class="fn">backprop</span>(self) <span class="op">-></span> <span class="bi">None</span>:
+        <span class="kw">for</span> n <span class="kw">in</span> <span class="bi">reversed</span>(self.nodes):
+            n.propagate()
+
+    <span class="kw">def</span> <span class="fn">clear</span>(self) <span class="op">-></span> <span class="bi">None</span>:
+        self.nodes <span class="op">=</span> []
+
+    <span class="kw">def</span> <span class="fn">from_nodes</span>(self, value: <span class="bi">float</span>, nodes: <span class="bi">list</span>[<span class="cl">node</span>]) <span class="op">-></span> <span class="cl">number</span>:
+        n <span class="op">=</span> <span class="cl">node</span>(<span class="bi">len</span>(nodes), <span class="nm">0.00</span>, [], [], self)
+
+        <span class="kw">if</span> <span class="bi">len</span>(nodes) <span class="op">></span> <span class="nm">0</span>:
+            n.parents  <span class="op">=</span> nodes
+            n.partials <span class="op">=</span> [<span class="nm">0.00</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(nodes))]
+
+        self.nodes.append(n)
+        num <span class="op">=</span> <span class="cl">number</span>(value, n)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">new_leaf</span>(self, value: <span class="bi">float</span>) <span class="op">-></span> <span class="cl">number</span>:
+        np <span class="op">=</span> <span class="cl">node</span>(<span class="nm">0</span>, <span class="nm">0.00</span>, [], [], self)
+        <span class="kw">return</span> <span class="cl">number</span>(value, np)
+  </div>
+
+    <p>
+      The operations are straightforward, if a bit time-consuming to type out:
+    </p>
+
+<div class="block">
+  <pre><span class="dc">@dataclass</span>
+<span class="kw">class</span> <span class="cl">number</span>:
+
+    <span class="cm"># continued from above...</span>
+
+    <span class="kw">def</span> <span class="fn">add</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">+</span> other.value, [self.node, other.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
+        num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">1.00</span>
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">sub</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">-</span> other.value, [self.node, other.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span>  <span class="nm">1.00</span>
+        num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1.00</span>
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">div</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">/</span> other.value, [self.node, other.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span>  <span class="nm">1.00</span> <span class="op">/</span> other.value
+        num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="op">-</span>self.value <span class="op">/</span> (other.value<span class="op">**</span><span class="nm">2</span>)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">mul</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">*</span> other.value, [self.node, other.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> other.value
+        num.node.partials[<span class="nm">1</span>] <span class="op">=</span> self.value
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">exp</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(exp(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> exp(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">log</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(log(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="op">/</span> self.value
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">sin</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(sin(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> cos(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">cos</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(cos(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span>sin(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">sqrt</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(sqrt(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">0.50</span> <span class="op">/</span> sqrt(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">square</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value<span class="op">**</span><span class="nm">2</span>, [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">2.00</span> <span class="op">*</span> self.value
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">add_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">+</span> other, [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">div_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">/</span> other, [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="op">/</span> other
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">mul_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(self.value <span class="op">*</span> other, [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> other
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">norm_cdf</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(normal_cdf(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> normal_pdf(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">norm_pdf</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> from_nodes(normal_pdf(self.value), [self.node])
+        num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span>self.value <span class="op">*</span> normal_pdf(self.value)
+        <span class="kw">return</span> num
+
+    <span class="kw">def</span> <span class="fn">max</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
+        <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:
+            num <span class="op">=</span> from_nodes(max(self.value, other.value), [self.node, other.node])
+            <span class="kw">if</span> self.value <span class="op">></span> other.value:
+                num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
+                num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">0.00</span>
+            <span class="kw">else</span>:
+                num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">0.00</span>
+                num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">1.00</span>
+            <span class="kw">return</span> num
+        <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):
+            num <span class="op">=</span> from_nodes(max(self.value, other), [self.node])
+            num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="kw">if</span> self.value <span class="op">></span> other <span class="kw">else</span> <span class="nm">0.00</span>
+            <span class="kw">return</span> num
+        <span class="kw">raise</span> <span class="bi">TypeError</span>(
+            <span class="st">f"cannot compute max(number, other) for type(other)={<span class="bi">type</span>(other)}"</span>
+        )</pre>
+</div>
+  <p> Finally, simple helpers for computations with normal distributions:</p>
+<div class="block">
+  <pre><span class="kw">def</span> <span class="fn">normal_cdf</span>(v: <span class="bi">float</span>) <span class="op">-></span> <span class="bi">float</span>:
+    <span class="kw">return</span> (<span class="nm">1</span> <span class="op">+</span> erf(v <span class="op">/</span> sqrt(<span class="nm">2</span>))) <span class="op">/</span> <span class="nm">2.00</span>
+
+
+<span class="kw">def</span> <span class="fn">normal_pdf</span>(v: <span class="bi">float</span>) <span class="op">-></span> <span class="bi">float</span>:
+    <span class="kw">return</span> <span class="nm">1</span> <span class="op">/</span> sqrt(<span class="nm">2</span> <span class="op">*</span> pi) <span class="op">*</span> exp(<span class="op">-</span>(v<span class="op">**</span><span class="nm">2</span>) <span class="op">/</span> <span class="nm">2</span>)</pre>
+</div>
+
+<p> We can now put it all together in this very simple (but AAD ready) Monte Carlo 
+  simulation:
+</p>
+
+<div class="block">
+  <pre><span class="kw">def</span> <span class="fn">bs_montecarlo</span>(
+    S:         <span class="bi">float</span>,
+    K:         <span class="bi">float</span>,
+    bsvol:     <span class="bi">float</span>,
+    rate:      <span class="bi">float</span>,
+    num_paths: <span class="bi">int</span>,
+    T:         <span class="bi">float</span>,
+    seed:      <span class="bi">int</span> <span class="op">=</span> <span class="nm">12</span>,
+):
+    payoffs: <span class="bi">list</span>[<span class="bi">float</span>] <span class="op">=</span> []
+    deltas:  <span class="bi">list</span>[<span class="bi">float</span>] <span class="op">=</span> []
+    vegas:   <span class="bi">list</span>[<span class="bi">float</span>] <span class="op">=</span> []
+
+    rng <span class="op">=</span> np.random.default_rng(seed)
+    tape = <span class="kw">tape</span>([])
+
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(num_paths):
+
+        tape.clear()                                          
+        <span class="cm"># clear the tape for each path</span>
+        spot    <span class="op">=</span> tape.new_leaf(S)
+        vol     <span class="op">=</span> tape.new_leaf(bsvol)
+        drift   <span class="op">=</span> tape.new_leaf(rate) <span class="op">-</span> <span class="nm">0.50</span> <span class="op">*</span> vol <span class="op">*</span> vol    
+        logspot <span class="op">=</span> spot.log()
+        sqrtT   <span class="op">=</span> <span class="bi">float</span>(np.sqrt(T))
+        noise   <span class="op">=</span> rng.normal()
+        logspot <span class="op">=</span> logspot <span class="op">+</span> T <span class="op">*</span> drift <span class="op">+</span> vol <span class="op">*</span> sqrtT <span class="op">*</span> noise   
+        endval  <span class="op">=</span> logspot.exp()
+        <span class="cm"># call payoff: max(S(T) - K, 0)</span>
+        payoff  <span class="op">=</span> (endval <span class="op">-</span> K).max(<span class="nm">0.00</span>)                   
+        payoffs.append(payoff.value)
+
+        <span class="cm"># seed the tape: set adjoint of output node to 1</span>
+        tape.seed()     
+        <span class="cm"># backprop along the tape</span>
+        tape.backprop() 
+
+        deltas.append(spot.node.adjoint)  <span class="cm"># dC/dS</span>
+        vegas.append(vol.node.adjoint)    <span class="cm"># dC/dVol</span>
+
+    pv    <span class="op">=</span> <span class="bi">sum</span>(payoffs) <span class="op">/</span> num_paths
+    delta <span class="op">=</span> <span class="bi">sum</span>(deltas)  <span class="op">/</span> num_paths
+    vega  <span class="op">=</span> <span class="bi">sum</span>(vegas)   <span class="op">/</span> num_paths
+
+    <span class="kw">return</span> pv, delta, vega</pre>
+</div>
+
+<p>The graphs below confirm the correctness of the implementation: the 
+  analytic and the simulated values and Greeks coincide (within a small 
+  Monte Carlo standard error): 
+</p>
+
+        <div style="text-align: center">
+        <img
+            src='./images/pv.svg'
+            width="650vw"/>
+               <br>
+               <div class="caption">
+                 <b>Figure 2.</b>  The payoff of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.
+                </div>
+       </div>
+        <div style="text-align: center">
+        <img
+            src='./images/vega.svg'
+            width="650vw"/>
+               <br>
+               <div class="caption">
+                 <b>Figure 3.</b>  The vega of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.
+                </div>
+       </div>
+        <div style="text-align: center">
+        <img
+            src='./images/delta.svg'
+            width="650vw"/>
+               <br>
+               <div class="caption">
+                 <b>Figure 4.</b>  The delta of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.
+                </div>
+       </div>
+
+  
+<h3>References</h3>
+
+    For further 
+      reading, see:
+      <ol>
+        <li>
+          <a href="https://people.maths.ox.ac.uk/gilesm/files/NA-05-15.pdf">
+         <em>Smoking Adjoints: fast evaluation of Greeks in Monte Carlo calculations</em></a>; M. Giles and P. Glasserman;
+        </li>
+        <li>
+          <a href="https://www.risk.net/topics/adjoint-algorithmic-differentiation-aad"><em>Adjoint algorithmic differentiation (AAD)</em></a>; collection of articles at risk.net;
+        </li>
+        <li>  
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4588939"><em>15 Years of Adjoint Algorithmic Differentiation in Finance</em>; 
+         </a>;  L. Capriotti, M. B. Giles;
+        </li>
+        <li>
+          <a href="https://antoinesavine.com/wp-content/uploads/2021/05/modern-computational-finance.pdf"><em>Modern computational finance: AAD and parallel simluations</em></a>;
+          A. Savine.
+        </li>
+        <li>
+          A. Griewank; <em>On Automatic Differentiation</em>; in <em>Mathematical Programming: Recent Developments and Applications</em>, ed. M. Iri and K. Tanabe, Kluwer Academic Publishers, 1989, pp. 83--108.
+        </li>
+        <li>
+          <a href="https://epubs.siam.org/doi/book/10.1137/1.9780898717761"><em>Evaluating Derivatives: Principles and Techniques of Algorithmic Differentiation</em></a>, 2nd ed.;
+          A. Griewank and A. Walther; SIAM, 2008.
+        </li>
+      </ol>
+    </p>
+
+    
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>
