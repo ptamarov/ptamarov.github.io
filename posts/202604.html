@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>April 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+
+    h1 { font-size: 1.4rem; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+
+    .block {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .block-header {
+      background: #313244;
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cba6f7;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    pre {
+      margin: 0;
+      padding: 1rem 1.25rem;
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* Syntax highlight classes */
+    .kw  { color: #cba6f7; }   /* keywords */
+    .bi  { color: #89b4fa; }   /* builtins / types */
+    .fn  { color: #89dceb; }   /* function names */
+    .st  { color: #a6e3a1; }   /* strings */
+    .cm  { color: #6c7086; font-style: italic; } /* comments */
+    .nm  { color: #fab387; }   /* numbers */
+    .op  { color: #f38ba8; }   /* operators */
+    .dc  { color: #f9e2af; }   /* decorators */
+    .cl  { color: #f9e2af; }   /* class names */
+  </style>
+  <ul id="navbar" class="navigationjus">
+         <li>
+           <a href="./202603.html" class="navigation">Previous post</a>
+         </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+      <!-- <li>
+        <a href="/202601a.html" class="navigation">Next post</a>
+      </li> -->
+    </ul>
+
+    <h2 class="aligncenter">April blurb: stochastic collocation methods</h2>
+
+    <h3>1. Problem statement: sample tough distributions accurately and fast</h3>
+
+    <p>
+      Suppose you want to sample a normal distribution, and are only able 
+      to produce uniform variates. How can you do it? One option is to use 
+      the Box--Müller method: sample <em>two</em> uniform variates $(u,v)$ 
+      and set 
+      $$(x,y) = \left(\sqrt{-2\log u} \cos(2\pi v), \sqrt{-2\log u} \sin(2\pi v)\right).$$ 
+      Then $(x,y)$ is 2-dimensional standard normal, and $x$ is a standard 
+      Gaussian distribution. You could also sample a single uniform $u$ and 
+      use an efficient and accurate implementation of $\Phi^{-1}(u)$, the 
+      percentage point function (PPF) of the standard normal distribution. But 
+      what about more complex distributions? For example, sampling a non-central 
+      $\chi$-squared distribution requires inverting a cumulative distribution 
+      function (CDF) defined by a convergent infinite series. For a handful of 
+      computations, this is fine. For a few millions, it is infeasible.
+      This <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2529691">paper</a>
+      proposes a smarter way to do it: sample the expensive PPF 
+      $\Psi^{-1}(\Phi(x))$ at finitely many strategically chosen normal deviates 
+      $x_1,\ldots,x_n \in\mathbb R$, and call the outputs $y_1,\ldots,y_n$. Then,
+      use a family of functions $L_1(x),\ldots,L_n(x)$ such that $L_i(x_j) = \delta_{ij}$ 
+      and replace $g(x) = \Psi^{-1}(\Phi(x))$ by 
+      $$\hat{g}(x) = \sum_{i=1}^n y_i L_i(x) .$$ 
+    </p>
+
+
+    <h3>2. Test case: the inverse Gaussian distribution</h3>
+      <p>
+        The <em>inverse Gaussian</em> (IG) distribution has positive parameters
+        $\mu$ and $\lambda$ and arises naturally as the distribution of the
+        first-passage time of a Brownian motion with drift. Concretely, if $W_t$
+        is a standard Brownian motion and $\nu, a$ are positive constants, then
+        the hitting time $\tau = \inf\{t \ge 0 : \nu t + W_t = a\}$ follows an
+        IG distribution with $\mu = a/\nu$ and $\lambda = a^2$.
+      </p>
+      <p>
+        Its probability density function is $$f(x;\mu,\lambda) =
+        \sqrt{\frac{\lambda}{2\pi
+        x^3}}\exp\!\left(-\frac{\lambda(x-\mu)^2}{2\mu^2 x}\right), \quad
+        \text{for positive } x,$$ and its cumulative distribution function
+        admits the closed form $$F(x;\mu,\lambda) =
+        \Phi\!\left(\sqrt{\frac{\lambda}{x}}\left(\frac{x}{\mu}-1\right)\right)
+        +
+        e^{2\lambda/\mu}\,\Phi\!\left(-\sqrt{\frac{\lambda}{x}}\left(\frac{x}{\mu}+1\right)\right),$$
+        where $\Phi$ denotes the standard normal CDF. Although the CDF is
+        available in closed form, inverting it is not straightforward. Indeed,
+        decomposing each argument as $\sqrt{\lambda/x} = v/2$ and $\sqrt{\lambda
+        x}/\mu = k/v$ (which is consistent precisely when $k = 2\lambda/\mu$),
+        the two $\Phi$-arguments become $k/v + v/2$ and $k/v - v/2$, and we
+        recognise $$1 - F(x;\mu,\lambda) = f^{-1}\,\mathrm{Call}(f,K,v),$$ the
+        Black--Scholes call price (divided by the forward $f$) with
+        log-moneyness $k = \log(K/f)$ and total volatility $v$. Inverting the IG
+        CDF at a given probability level is therefore exactly as hard as finding
+        the implied volatility of a call option! 
+      </p>
+
+      <p>
+        Let us test how well this performs for some values of $\mu$ and
+        $\lambda$. I implemented the algorithm in the paper in Go
+        and compared the output with what SciPy returns. The results are
+        quite decent using 9 collocation points:
+      </p>
+
+        <div>
+          <img src='./images/ig_coll_1.svg' style="display:block; margin:auto; width:85%;"/>
+          <div class="caption" style="text-align:center">
+            <b>Figure 1.</b> $\mathrm{IG}(\mu=1,\lambda=1)$.
+            <em>Top:</em> CDF computed analytically in Go (red dashed) vs. SciPy (blue solid);
+            circles are the 9 stochastic collocation nodes (two far-tail nodes omitted from the plot).
+            <em>Bottom:</em> PPF approximation error $\hat{F}^{-1}(p)-F^{-1}(p)$.
+          </div>
+        </div>
+        <div>
+          <img src='./images/ig_coll_2.svg' style="display:block; margin:auto; width:85%;"/>
+          <div class="caption" style="text-align:center">
+            <b>Figure 2.</b> $\mathrm{IG}(\mu=1,\lambda=3)$: higher shape parameter,
+            lighter tail.
+          </div>
+        </div>
+        <div>
+          <img src='./images/ig_coll_3.svg' style="display:block; margin:auto; width:85%;"/>
+          <div class="caption" style="text-align:center">
+            <b>Figure 3.</b> $\mathrm{IG}(\mu=3,\lambda=1)$: larger mean,
+            heavier tail.
+          </div>
+        </div>
+
+        <p>
+          
+                  Finally, let us check how the error behaves as we produce more collocation 
+                  points:
+
+        </p>
+
+        <div>
+          <img src='./images/ig_coll_npts.svg' style="display:block; margin:auto; width:100%;"/>
+          <div class="caption" style="text-align:center">
+            <b>Figure 4.</b> PPF approximation error (log scale) for $\mathrm{IG}(\mu=3,\lambda=1)$
+            as the number of collocation nodes increases from 9 to 13 to 17.
+          </div>
+        </div>
+
+
+<h3>References</h3>
+
+    For further reading, see:
+      <ol>
+        <li>
+          L. A. Grzelak, J. Witteveen, M. Suarez-Taboada, C. W. Oosterlee;
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2529691"><em>The Stochastic Collocation Monte Carlo Sampler: Highly Efficient Sampling from 'Expensive' Distributions</em></a>;
+          Quantitative Finance, 2018.
+        </li>
+        <li>
+          M. C. W. Tweedie; <em>Statistical properties of inverse Gaussian distributions</em>;
+          Annals of Mathematical Statistics, 28(2):362--377, 1957.
+        </li>
+        <li>
+          V. Seshadri; <em>The Inverse Gaussian Distribution: Statistical Theory and Applications</em>;
+          Springer, 1998.
+        </li>
+        <li>
+          W. H. Press, S. A. Teukolsky, W. T. Vetterling, B. P. Flannery;
+          <a href="https://numerical.recipes/"><em>Numerical Recipes: The Art of Scientific Computing</em></a>, 3rd ed.;
+          Cambridge University Press, 2007.
+          (Gauss–Hermite quadrature and Lagrange interpolation.)
+        </li>
+      </ol>
+
+    
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>

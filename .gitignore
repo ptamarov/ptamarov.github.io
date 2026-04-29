@@ -5,3 +5,5 @@ index-old.html
 .DS_Store
 idea_*
 nbk_*
+_stash/
+__pycache__/
