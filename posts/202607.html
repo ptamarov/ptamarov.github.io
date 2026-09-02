@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>July 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+    </style>
+    <ul id="navbar" class="navigationjus">
+      <li>
+        <a href="./202606.html" class="navigation">Previous post</a>
+      </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+    </ul>
+
+    <h2 class="aligncenter">July: local volatility as a market model</h2>
+
+    <p>
+      Everything below is taken from Lorenzo Bergomi's <em>Stochastic Volatility
+      Modeling</em> <a href="#ref1">[1]</a> and, more directly, from the
+      <a href="https://www.lorenzobergomi.com/_files/ugd/c4ff5c_b8e09b1e5178432aa5d2b2aac323a57d.pdf">slides</a>
+      on his webpage <a href="#ref2">[2]</a>. I have rewritten the argument in my
+      own notation, and filled in the steps I had to do by hand to arrive at
+      the final formula, which I rewrote in a way a mathematician probably would. 
+    </p>
+
+    <p>
+      The local volatility model is particular in that its specification is
+      inconsistent with the way it is used in practice: the model says
+      volatility is a deterministic function of time and spot, and then every
+      morning desks recalibrate that function to a market that has moved.
+      It turns out that this is exactly the
+      right way to use it, and taking it seriously is what produces risk
+      sensitivities that are relevant to managing a position. The takeaway is a
+      PnL decomposition formula in which every Greek appears against an explicit
+      break-even level, and in which the whole covariance structure of the
+      model is a rank one matrix.
+    </p>
+
+    <h3>The Dupire equation and the role of local volatility</h3>
+
+    <p>
+      Although it is usually not presented as one, the local volatility model
+      <em>is</em> a stochastic volatility model; it is just that volatility is a
+      function of time and spot, so that its specification is done through a
+      function $\sigma(t,k)$. One way to understand this dependence is through
+      Dupire's equation: in <em>any</em> stochastic volatility model of the form
+      \[
+        \frac{df(t)}{f(t)} = \sigma(t)\, dW(t),
+      \]
+      where $\sigma(t)$ is a random process, we have that
+      \[
+        \mathbb E\left(\sigma(T)^2 \mid f(T) = K\right)
+          = \frac{\partial_T C(T,K)}{\tfrac 12 K^2 \partial_K^2 C(T,K)},
+      \]
+      where $C(T,K)$ is the model price of a $T$-maturity call on $f$ with
+      strike $K$. In other words, if we want the model to fit currently
+      observable market prices, we must make sure that the expected
+      instantaneous variance of $f$, conditional on it reaching a particular
+      value $K$, satisfies the equation above. An astute reader will notice that
+      the denominator is always positive, since non-arbitrageable call prices
+      are strictly convex in strike, and that the numerator is always positive,
+      since non-arbitrageable call prices are strictly increasing in expiry;
+      note that since $f$ is the forward, discounting and dividend effects are
+      already incorporated into this last calculation.
+    </p>
+
+    <p>
+      Assuming that $\sigma(t)$ is random only by way of the spot process $f$,
+      say of the form $\sigma(t,f(t))$, it is clear that
+      $\mathbb E(\sigma(T)^2 \mid f(T)=K) = \sigma(T,K)^2$, so this is the
+      simplest model specification that achieves the goal of matching the
+      current option market on spot. The specification we will focus on is then
+      \[
+        df(t) = \Sigma(t, f(t))\, dW(t),
+      \]
+      where $\Sigma(T,K) = K\sigma(T,K)$ is uniquely determined by the Dupire
+      equation. This is the same conditional expectation that appeared in
+      <a href="./202605.html">May's post</a> on Gyöngy's theorem, read in the
+      other direction: there we started from a model and asked which local
+      volatility reproduced its marginals, here we start from the marginals and
+      let them define the model.
+    </p>
+
+    <h3>The market parameters and pricing functions</h3>
+
+    <p>
+      Once the model is specified we can analyse what kind of PnL and
+      break-even levels it produces for a given position. It should be noted
+      that, as Bergomi explains, the <em>true</em> parameters of this model are
+      the observed market quotes used to <em>calibrate</em> the function
+      $\sigma(t,k)$ and, of course, the spot of the underlying. This means that
+      the net value $P(t)$ of a position is a function
+      \[
+        P(t) = p\left(t, f(t), \hat\sigma_{\mathsf{Market}}(t)\right),
+      \]
+      where $\hat\sigma_{\mathsf{Market}}(t)$ is the vector of implied
+      Black&ndash;Scholes volatility quotes we have used to calibrate
+      $\sigma(t,k)$ at the current time $t$.
+    </p>
+
+    <p>
+      In order to move forward we must also note that, once we have fixed
+      $\sigma$ and the spot $f(0)$, any change in $f(0)$ changes $\sigma$, and
+      hence the model quotes for $\hat\sigma$. Thus, quite crucially, we must
+      consider $\sigma(t,k)$ as a function of the market parameters $(f(0),
+      \hat\sigma_{\mathsf{Market}})$, but we must also consider
+      $\hat\sigma_{\mathsf{Model}}(t,k)$ as a function of $\sigma(t,k)$. That
+      the model is calibrated at $t=0$ means, of course, that each quote in
+      $\hat\sigma_{\mathsf{Market}}$ is matched by its corresponding
+      $\hat\sigma_{\mathsf{Model}}(T_i,K_j)$, where $(i,j)$ ranges over our
+      input vector.
+    </p>
+
+    <p>
+      The above means that computing the delta of a local volatility model is
+      more delicate than just bumping spot: once $f(0)$ is updated this affects
+      the function $\sigma$ and in turn the implied volatility quotes, so there
+      is an obvious domino effect. Computing delta by simply moving $f(0)$ and
+      <em>not</em> recalibrating gives nonsensical results, and this observation
+      trickles down to every other risk computation. Having made it, we can now
+      do some basic computations.
+    </p>
+
+    <p>
+      Alongside $p$ we have the model pricing function $q(t,f)$, which is what
+      a Monte Carlo or PDE implementation of the model actually returns. Since
+      fixing $f$ and $\sigma$ fixes the model's own implied volatility quotes,
+      the two are related by
+      \[
+        q(t,f) = p\left(t, f, \hat\sigma_{\mathsf{Model}}(t,f)\right),
+      \]
+      and $q$ satisfies the pricing equation that expresses that the model is
+      arbitrage-free,
+      \[
+        \frac{\partial q}{\partial t}
+          + \frac 12 \Sigma(t,f)^2 \frac{\partial^2 q}{\partial f^2} = 0 .
+      \]
+      From here on I will drop the subscript and write $\hat\sigma$ for
+      $\hat\sigma_{\mathsf{Model}}$. The whole argument consists of playing
+      these two representations of the same position against each other: $q$ is
+      the one that satisfies a PDE, and $p$ is the one whose derivatives are the
+      Greeks a desk actually quotes.
+    </p>
+
+    <h3>The PnL over a short period of time</h3>
+
+    <p>
+      Notice that once the model is specified, the dynamics of the model implied
+      volatility are also specified. Consider then the PnL of our position after a short period of
+      time, say from $t$ to $t+\delta t$. We will see a new spot $f + \delta f$
+      and new implied volatility quotes $\hat\sigma + \delta\hat\sigma$. Using a
+      second order expansion in the state variables and a first order expansion
+      in $t$,
+      \[
+        \mathsf{PnL} \approx
+          \frac{\partial p}{\partial t}\delta t
+          + \frac{\partial p}{\partial f}\delta f
+          + \frac{\partial p}{\partial \hat\sigma}\cdot\delta\hat\sigma
+          + \frac 12 \frac{\partial^2 p}{\partial f^2}(\delta f)^2
+          + \delta f \cdot \frac{\partial^2 p}{\partial f \partial\hat\sigma}
+            \cdot \delta\hat\sigma
+          + \frac 12 \delta\hat\sigma^\top
+            \frac{\partial^2 p}{\partial\hat\sigma^2}\, \delta\hat\sigma .
+      \]
+      Note that, since $\hat\sigma$ is a vector, the gradient and Hessian are
+      involved.
+    </p>
+
+    <h3>Working out the model theta</h3>
+
+    <p>
+      Differentiating $q(t,f) = p(t,f,\hat\sigma(t,f))$ once in $t$ and twice in
+      $f$ gives
+      \[
+        \frac{\partial q}{\partial t}
+          = \frac{\partial p}{\partial t}
+            + \frac{\partial p}{\partial\hat\sigma}\cdot
+              \frac{\partial\hat\sigma}{\partial t},
+      \]
+      \[
+        \frac{\partial q}{\partial f}
+          = \frac{\partial p}{\partial f}
+            + \frac{\partial p}{\partial\hat\sigma}\cdot
+              \frac{\partial\hat\sigma}{\partial f},
+      \]
+      \[
+        \frac 12 \frac{\partial^2 q}{\partial f^2}
+          = \frac 12 \frac{\partial^2 p}{\partial f^2}
+            + \frac{\partial^2 p}{\partial f\partial\hat\sigma}\cdot
+              \frac{\partial\hat\sigma}{\partial f}
+            + \frac 12 \frac{\partial\hat\sigma}{\partial f}^\top
+              \frac{\partial^2 p}{\partial\hat\sigma^2}
+              \frac{\partial\hat\sigma}{\partial f}
+            + \frac 12 \frac{\partial p}{\partial\hat\sigma}\cdot
+              \frac{\partial^2\hat\sigma}{\partial f^2} .
+      \]
+      It is useful to go over each term and check that the result is a scalar.
+      For example, the last one is the dot product of the gradient of $p$
+      against $\hat\sigma$ with the second derivative of the vector $\hat\sigma$
+      with respect to spot.
+    </p>
+
+    <p>
+      By It&ocirc;'s
+      formula applied to $\hat\sigma(t, f(t))$ under $df = \Sigma\, dW$, the
+      vector of implied volatilities is itself a diffusion,
+      \[
+        d\hat\sigma(t) = \mu \, dt + \nu \, dW(t), \qquad
+        \mu = \frac{\partial\hat\sigma}{\partial t}
+              + \frac 12 \Sigma^2 \frac{\partial^2\hat\sigma}{\partial f^2},
+        \qquad
+        \nu = \Sigma \frac{\partial\hat\sigma}{\partial f} .
+      \]
+      So $\mu$ is the drift of the implied volatility quotes and $\nu$ is their
+      normal volatility. Bergomi uses the log-normal volatility instead, but
+      that introduces somewhat cumbersome notation, so I will avoid it; to put
+      our minds at ease we can pretend for a moment that $f$ is a forward rate
+      in some interest rate market, or a similar rate, so that normal volatility
+      also makes sense for practical purposes.
+    </p>
+
+    <p>
+      Now solve the pricing equation for $\partial_t q$, substitute the chain
+      rule expressions above, and read off $\partial_t p$:
+      \[
+        \frac{\partial p}{\partial t}
+          = -\frac 12 \Sigma^2 \frac{\partial^2 q}{\partial f^2}
+            - \frac{\partial p}{\partial\hat\sigma}\cdot
+              \frac{\partial\hat\sigma}{\partial t} .
+      \]
+      Expanding $\partial_f^2 q$ produces four terms, and each of them pairs off
+      with something. The two terms carrying $\partial_{\hat\sigma}p$ combine
+      into exactly the drift $\mu$,
+      \[
+        -\frac 12 \Sigma^2 \frac{\partial p}{\partial\hat\sigma}\cdot
+          \frac{\partial^2\hat\sigma}{\partial f^2}
+        - \frac{\partial p}{\partial\hat\sigma}\cdot
+          \frac{\partial\hat\sigma}{\partial t}
+        = -\frac{\partial p}{\partial\hat\sigma}\cdot\mu ,
+      \]
+      the cross term becomes
+      $-\Sigma^2\, \partial^2_{f\hat\sigma}p \cdot \partial_f\hat\sigma
+      = -\Sigma\, \partial^2_{f\hat\sigma} p\cdot\nu$, the pure implied
+      volatility term becomes
+      $-\frac 12 \nu^\top \partial^2_{\hat\sigma}p\, \nu$, and the remaining one
+      is the familiar $-\frac 12 \Sigma^2 \partial_f^2 p$. In other words,
+      \[
+        \frac{\partial p}{\partial t}
+          = -\frac 12 \Sigma^2 \frac{\partial^2 p}{\partial f^2}
+            - \frac{\partial p}{\partial\hat\sigma}\cdot\mu
+            - \Sigma\, \frac{\partial^2 p}{\partial f\partial\hat\sigma}\cdot\nu
+            - \frac 12 \nu^\top
+              \frac{\partial^2 p}{\partial\hat\sigma^2}\, \nu .
+      \]
+      Every piece of theta has been attributed to one of the second order terms
+      in the PnL expansion, which is what we wanted.
+    </p>
+
+    <h3>The full PnL expression</h3>
+
+    <p>
+      Substituting back and grouping each Greek with its own theta, the PnL
+      turns out to be
+      \[
+        \begin{aligned}
+        \mathsf{PnL} \approx\;
+          & \mathsf{Delta}\, \delta f
+          + \frac 12 \mathsf{Gamma}\left((\delta f)^2 - \Sigma^2\delta t\right)
+          + \mathsf{Vega}\cdot\left(\delta\hat\sigma - \mu\,\delta t\right) \\
+          & + \mathsf{Vanna}\cdot\left(
+              \delta f\, \delta\hat\sigma - \Sigma\nu\, \delta t\right)
+          + \frac 12 \mathsf{Volga}\star\left(
+              \delta\hat\sigma\, \delta\hat\sigma^\top
+              - \nu\nu^\top \delta t\right),
+        \end{aligned}
+      \]
+      where $A \star B = \mathrm{tr}(AB)$ and
+      \[
+        \begin{aligned}
+        \mathsf{Delta} &= \frac{\partial p}{\partial f}, &
+        \mathsf{Gamma} &= \frac{\partial^2 p}{\partial f^2}, &
+        \mathsf{Vega} &= \frac{\partial p}{\partial\hat\sigma}, \\
+        \mathsf{Vanna} &= \frac{\partial^2 p}{\partial f\partial\hat\sigma}, &
+        \mathsf{Volga} &= \frac{\partial^2 p}{\partial\hat\sigma^2} .
+        \end{aligned}
+      \]
+      Following Bergomi, we can make the following observations.
+    </p>
+
+    <ol>
+      <li>
+        There is the usual delta term, computed using the <em>correct</em>
+        procedure of moving spot and accounting for the recalibration of the
+        model. This <em>cannot be ignored</em> if we want a delta that makes
+        sense: the delta must be aware of the changes in implied volatility that
+        the model expects to accompany a move in spot.
+      </li>
+      <li>
+        The volatility terms are what we would hope for. There is a vega term
+        carried against the unhedgeable drift $\mu$, a vanna term owing to the
+        skew of the implied volatility quotes, and a volatility gamma. These are
+        model, and therefore market, quotes implied by the current calibration,
+        so they do capture the current shape of the implied volatility surface;
+        although it is not immediate, they are related to its slope and
+        convexity.
+      </li>
+      <li>
+        Every Greek is paired with a break-even level, and the break-even levels
+        are precisely the entries of the instantaneous covariance matrix of the
+        state variables. The model's prediction about PnL is entirely a
+        prediction about the covariance structure of $f$ and $\hat\sigma$.
+      </li>
+    </ol>
+
+    <h3>Model limitations: the break-even matrix is rank one!</h3>
+
+    <p>
+      That last observation is where the model does not really shine. Over a short
+      period, $\delta f = \Sigma\,\delta W$ and $\delta\hat\sigma = \nu\,\delta W
+      + \mu\,\delta t$, both driven by the <em>same</em> scalar Brownian
+      increment. Writing $v = (\Sigma, \nu)$ for the joint vector of normal
+      volatilities, the instantaneous covariance matrix of the state variables
+      $(f, \hat\sigma)$ is
+      \[
+        C = v v^\top, \qquad v = \Sigma \frac{\partial}{\partial f}
+              \left(f, \hat\sigma\right),
+      \]
+      which is a rank one matrix. This is a genuine limitation: spot and its volatility are not independent
+      sources of risk in this model. The implied volatility quotes carry no
+      randomness of their own, being a deterministic function of $t$ and $f$, so
+      up to drift terms $\delta\hat\sigma$ is completely determined by
+      $\delta f$. There is one Brownian motion, hence one risk factor, and the
+      vega, vanna and volga exposures in the PnL are not additional risks at
+      all; they are the spot risk written a second time.
+    </p>
+
+    <p>
+      Since the entries of $C$ are exactly the break-even levels appearing in
+      the PnL expansion, we also cannot set them independently. A single
+      function $\sigma(t,k)$ has to serve simultaneously as the spot
+      volatility, the volatility of volatility, and the spot/volatility
+      correlation, and fitting today's smile pins down all three at once. There
+      is nothing left to adjust! However, for a position whose risk
+      is dominated by delta and gamma, a rank one break-even matrix that matches
+      the smile is a perfectly reasonable thing to hedge against, and it is only
+      when vanna and volga matter that the missing degrees of freedom
+      start to show. For example, local volatility models are poor at pricing 
+      cliquets and other forward starting products. 
+    </p>
+
+    <p>
+      A reasonable question is: what does this rank one structure predict about
+      how the at-the-money implied volatility moves when spot moves? Local
+      volatility gives a definite answer, which for short maturities is roughly
+      twice the skew. However, the market disagrees with it in a well documented
+      way: this is the concept of the skew stickiness ratio, and I hope to write
+      about it in some future post.
+    </p>
+
+    <h3>References</h3>
+
+    <ol>
+      <li id="ref1">
+        Bergomi, L. (2016), <i>Stochastic Volatility Modeling</i>, Chapman and
+        Hall/CRC, Boca Raton.
+      </li>
+      <li id="ref2">
+        Bergomi, L., <i>Local volatility</i>, lecture slides, available at
+        <a href="https://www.lorenzobergomi.com/">lorenzobergomi.com</a>.
+      </li>
+      <li id="ref3">
+        Dupire, B. (1994), "Pricing with a Smile," <i>Risk</i>, 7(1), 18&ndash;20.
+      </li>
+      <li id="ref4">
+        Gy&ouml;ngy, I. (1986), "Mimicking the One-Dimensional Marginal
+        Distributions of Processes Having an It&ocirc; Differential,"
+        <i>Probability Theory and Related Fields</i>, 71(4), 501&ndash;516.
+      </li>
+    </ol>
+
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>
