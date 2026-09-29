@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>September 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+    </style>
+    <ul id="navbar" class="navigationjus">
+      <li>
+        <a href="./202608.html" class="navigation">Previous post</a>
+      </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+    </ul>
+
+    <h2 class="aligncenter">September: neural calibration of the Bergomi model</h2>
+
+    <p>
+      Last month we compared two ways of pricing European options under the
+      Heston model and argued that the differences between them only really
+      matter inside a calibration loop, where a whole surface is recomputed at
+      every iteration. Both methods work because Heston is an affine model,
+      meaning that its characteristic function is known in closed form. But what
+      if we are working with a more complex model, where only e.g. Monte Carlo 
+      methods are available for the computation of prices? 
+    </p>
+
+    <p>
+      In this post, we will explore one approach to tackle this issue. The idea
+      is that when making a pricer fast enough is impossible, we can instead pay
+      the computational cost once and generate a large collection of priced
+      surfaces from known model parameters, and use this to learn a function
+      that replaces the expensive Monte Carlo run. I will do this for the
+      one-factor Bergomi model, which has no easy semi-analytic characteristic
+      function and no closed-form price formula of any kind (as far as I know).
+      The goal is to learn the map that takes model parameters to market prices,
+      so that we can calibrate quickly and efficiently, even with models that
+      require simulation engines to price.
+    </p>
+
+    <h3>The map from quotes to parameters</h3>
+
+    <p>
+      Calibration takes a set of market quotes and returns model parameters. It
+      is usually implemented as an optimisation routine, but at the end of the
+      day it computes a function that maps a given surface to (near best)
+      calibrated parameters. The main point is that no one forces us to evaluate
+      that function by running the optimiser every time: if we can approximate
+      it directly, we can replace an iterative procedure by a single evaluation.
+      This is the observation behind Hernandez
+      <a href="#ref4">[4]</a> and the line of work that followed it.
+    </p>
+
+    <p>
+      There are two natural sets of data one can learn from and the resulting
+      network (or map) we build. One is the pricing or forward map, that takes
+      model parameters to prices (or implied volatilities), and this is what
+      Liu, Oosterlee and Bohte <a href="#ref5">[5]</a> do. The other is the
+      calibration or inverse map, from the surfaces back to the parameters,
+      which is what Horvath, Muguruza and Tomas <a href="#ref6">[6]</a> discuss
+      under the name of a "two-step approach". 
+    </p>
+      
+    <p>
+      The inverse (calibration) map is the more ambitious of the two, since it
+      removes the optimiser entirely, but it is thus much more fragile: it only
+      exists as a function if distinct parameter sets produce distinct surfaces.
+      If this is not the case, no amount of training data that can help us, as
+      there is just no function to learn to begin with! At any rate, both
+      approaches need the same input: a large collection of pairs consisting of
+      model parameters and the quotes they generate. In particular, the 
+      inverse map approach requires to choose model parameters in a way that 
+      are (nearly) perfectly identifiable from market prices, which could fail 
+      if the model is not specified correctly.
+    </p>
+
+    <h3>The Bergomi one factor model </h3>
+
+    <p>
+      The Bergomi model <a href="#ref1">[1]</a>, <a href="#ref2">[2]</a> is
+      built on the forward variance curve rather than on the instantaneous
+      variance, mimicking the usual practitioner approach for short rate models
+      in the spirit of Heath--Jarrow--Morton. In the one-factor case one takes a
+      zero-mean Ornstein--Uhlenbeck state variable
+
+      \[
+        dX(t) = -\kappa X(t)\, dt + dw(t), \qquad X(0) = 0,
+      \]
+
+      and sets the instantaneous variance to
+
+      \[
+        \sigma(t)^2 = \xi_0(t) \exp\left(\omega X(t)
+          - \tfrac12 \omega^2 v(t)\right),
+        \qquad v(t) = \frac{1 - e^{-2\kappa t}}{2\kappa},
+      \]
+
+      with $v(t)$ the variance of $X(t)$ and $dw dz = \rho\, dt$ the correlation
+      between the factor and the spot. The exponential keeps the variance
+      positive, and the subtraction of $\tfrac12\omega^2 v(t)$ is exactly what
+      makes the exponential a martingale, so that $\mathbb{E}[\sigma(t)^2] =
+      \xi_0(t)$. That leaves the curve $\xi_0$ together with three scalars as
+      the model parameters: the volatility of volatility $\omega$, the mean
+      reversion $\kappa$, and the spot-variance correlation $\rho$.
+    </p>
+
+    <p>
+      The model is normally used with two factors, one fast and one slow, which
+      is what gives it enough freedom to control the term structure of variance;
+      this is the subject of <em>Smile Dynamics II</em> <a href="#ref1">[1]</a>.
+      The single-factor version I use here is a simpler version of this model,
+      which I have decided to stick to as I have never tried this before, and I
+      didn't want to run into issues that could not be easily ascribed to issues
+      with the learning routine due to my unfamiliarity with the two factor model.
+    </p>
+
+    <p>
+      The main difference from the Heston model is that the pair consisting of
+      the log-spot and the variance is not affine. The variance is an
+      exponential of an Ornstein--Uhlenbeck process, which one can handle, but
+      there is no easy closed form for characteristic function as we had before.
+      Thus, all the nice results from the last month's post are unavailable to
+      us, and we are left with computing an expected value by drawing 
+      paths. Although there may be some corners to cut, this is not the point of
+      the post, so I will ignore any clever optimisations, which would at any
+      rate only speed up the generation of the data set to be learned. Note also
+      that the characteristic function of this model (and even some rough
+      versions) can be approximated (its computation involves a "fractional"
+      version of the Riccati ODEs one can solve by hand) and thus one can go
+      back to the COS method, but that's another story; some details can be
+      found in
+      <a href="#ref8">[8]</a>.
+    </p>
+
+    <p>
+      To produce our training data, we then just draw model parameters in some
+      way (here different practitioners would have their own idiosyncrasies
+      about which distributions one should draw from), then simulate and read
+      off the resulting quotes. The number of paths to choose and the quality of
+      the pricing engine of course matter but, as before, this is not a concern
+      of this post.
+    </p>
+
+    <p>
+      To have an idea of the speed of my Monte Carlo engine, generating a
+      million Bergomi rows took a little over seven hours (or about 26ms per
+      row) in a MacBook Air with an M5 chip. The corresponding Heston set,
+      generated with the cosine method of Fang and Oosterlee <a
+      href="#ref7">[7]</a> from last month's post, produced 500,000 rows in 56
+      minutes, or under 7ms per row. Monte Carlo turned out to be about four
+      times more expensive here, which is quite a good result! Against all of
+      this, training on the finished data took half an hour.
+    </p>
+
+    <h3>Learning the Bergomi prices and calibrating with it</h3>
+
+    <p>     
+      Once we generated the data and trained, we can look at the results. A
+      small caveat is that Monte Carlo generated data contains, at no fault of
+      its own, noise. Thus, one should take this noise into account when
+      evaluating the quality of the learned function. Note, however, that we do
+      not learn the noise, but it is still there when we evaluate the quality of
+      our network. One option is to compare against prices computed far more
+      accurately than the training labels, and then to remove the noise before
+      measuring. Below, one can see how the more correct measurement breaks
+      past the noise floor that would be impossible to break through otherwise.
+    </p>
+
+    <div style="text-align: center">
+      <img src="images/202609_forward_accuracy.svg"
+           alt="Error of the learned forward map against the number of training
+                surfaces, on logarithmic axes, shown both as measured against
+                noisy labels and after removing the label noise, with the noise
+                floor marked"
+           style="max-width: 100%; height: auto;">
+    </div>
+
+    <p>
+      The corrected curve falls like $n^{\frac 3{10}}$, and at a million
+      surfaces it reproduces the engine to about five basis points of
+      volatility, which is well below the observed at-the-money bid-ask spread
+      on liquid markets such as those of SPX options. Restricted to a region of
+      parameter space which accounts for what an index like SPX actually needs,
+      the measured error is entirely accounted for by the noise of the reference
+      prices, which is to say: I cannot measure it at all! 
+    </p>
+
+    <h3>Calibrating using our learned pricer on real data</h3>
+
+    <p>
+      With the learned pricing function at hand, the calibration is an ordinary
+      least-squares problem, with the bonus that the objective is easily
+      differentiable, in the sense that the derivative of the surface with
+      respect to the parameters is available to machine precision, at about the
+      cost of one more evaluation due to the usual backpropagation algorithm.
+      The practical consequence is that the whole fit is fast enough to run from
+      e.g. different starting points and keep the best, giving us a cheap way to
+      avoid any possible local minimum.
+    </p>
+    
+    <p>
+      Of course, fitting data coming from a real surface and a real market is
+      the true test. I took SPX quotes at five-minute resolution and used the
+      calibration routine in four different scenarios: on the opening quotes of
+      every trading day in the month up to 10 September 2026, on the closing
+      quotes of the same days, and two full sessions, chosen for being
+      particularly volatile. The viewer below lets you go over the results and
+      look at model and market quotes.
+    </p>
+
+<!-- BEGIN SMILE VIEWER (generated by pkgo/studies/applet.py) -->
+<style>
+.smileviz { margin: 1.4em 0; font: 13px/1.45 system-ui, -apple-system, sans-serif; }
+.smileviz .sv-bar { display: flex; flex-wrap: wrap; align-items: center;
+  gap: 8px 16px; margin-bottom: 8px; }
+.smileviz .sv-row { display: flex; align-items: center; gap: 10px; width: 100%;
+  margin-bottom: 4px; }
+.smileviz .sv-row > label { color: #666; min-width: 4.8em; font-size: 12px; }
+.smileviz .sv-tabs { display: inline-flex; border: 1px solid #ccc; border-radius: 5px;
+  overflow: hidden; }
+.smileviz .sv-tabs button { font: inherit; padding: 4px 11px; border: 0; cursor: pointer;
+  background: #fff; color: #333; border-right: 1px solid #ddd; }
+.smileviz .sv-tabs button:last-child { border-right: 0; }
+.smileviz .sv-tabs button[aria-pressed="true"] { background: #648FFF; color: #fff; }
+.smileviz input[type=range] { flex: 1 1 240px; min-width: 140px; accent-color: #648FFF; }
+.smileviz .sv-read { font-variant-numeric: tabular-nums; color: #444; }
+.smileviz .sv-read b { color: #111; }
+.smileviz .sv-tag { font-variant-numeric: tabular-nums; color: #111; min-width: 3.4em;
+  font-weight: 600; }
+.smileviz svg { width: 100%; height: auto; display: block; }
+.smileviz .sv-spot { margin-top: 6px; }
+.smileviz .sv-note { color: #666; font-size: 12px; margin-top: 6px; }
+</style>
+<div class="smileviz" id="smileviz">
+  <div class="sv-bar">
+    <span class="sv-tabs"><button type="button" aria-pressed="false">open</button><button type="button" aria-pressed="false">close</button><button type="button" aria-pressed="false">5 June</button><button type="button" aria-pressed="false">9 June</button></span>
+    <span class="sv-tabs sv-axis"><button type="button" aria-pressed="true">moneyness</button><button type="button" aria-pressed="false">strike</button></span>
+    <span class="sv-read"></span>
+  </div>
+  <div class="sv-row"><label>when</label><input class="sv-frame" type="range" min="0" max="0" value="0" aria-label="calibration time"></div>
+  <div class="sv-row"><label>maturity</label><input class="sv-mat" type="range" min="0" max="5" value="3" step="1" aria-label="maturity"><span class="sv-tag"></span></div>
+  <div class="sv-panel"></div>
+  <div class="sv-spot"></div>
+  <p class="sv-note">Dots are market implied volatilities, the line is the calibrated one-factor Bergomi smile. The two sliders move through calibration times and through the six maturities; the residual shown on the panel is for that maturity alone. In moneyness the smile is anchored to the forward, so only its shape moves; in strike the whole surface travels with the underlying. The strip below the panel is the underlying itself over the same window, drawn faint throughout and solid up to the frame on display.</p>
+</div>
+<script>
+fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(function (DATA) {
+  var LBL = ["3m", "6m", "9m", "1y", "18m", "2y"];
+  var root = document.getElementById("smileviz");
+  if (!root) return;
+  var cur = 0, frame = 0, mat = 3, inStrike = false;
+
+  var tabs = root.querySelector(".sv-tabs");
+  var sFrame = root.querySelector(".sv-frame");
+  var sMat = root.querySelector(".sv-mat");
+  var tagMat = root.querySelector(".sv-tag");
+  var read = root.querySelector(".sv-read");
+  var holder = root.querySelector(".sv-panel");
+  var strip = root.querySelector(".sv-spot");
+  var axisBtns = root.querySelectorAll(".sv-axis button");
+
+  // One maturity at a time, at the full width of the text. Six panels side by
+  // side left each of them too small for the fit to be inspected, which is the
+  // only reason to show smiles at all.
+  function ticks(lo, hi, n) {
+    var raw = (hi - lo) / n;
+    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var step = mag * 10;
+    [1, 2, 2.5, 5, 10].some(function (m) {
+      if (mag * m >= raw) { step = mag * m; return true; }
+      return false;
+    });
+    var out = [], v = Math.ceil(lo / step) * step;
+    for (; v <= hi + 1e-12; v += step) out.push(v);
+    return out;
+  }
+
+  // The underlying's path across the session, drawn faint the whole way and
+  // solid as far as the slider has gone. The smile panel shows one instant; on
+  // its own it gives no sense of where in the day's move that instant sits.
+  function drawSpot() {
+    var fr = DATA[cur].frames, n = fr.length;
+    var rg = DATA[cur].sr;
+    if (!rg || rg[1] <= rg[0] || !fr[frame].S) { strip.innerHTML = ""; return; }
+    var W = 900, H = 236, L = 64, R = 18, T = 28, B = 26;
+    var lo = rg[0], hi = rg[1];
+    var X = function (j) { return L + (n > 1 ? j / (n - 1) : 0.5) * (W - L - R); };
+    var Y = function (v) { return H - B - (v - lo) / (hi - lo) * (H - T - B); };
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+            'underlying through the session, at ' + fr[frame].t + '">';
+    s += '<rect width="' + W + '" height="' + H + '" fill="#fcfcfb"/>';
+    ticks(lo, hi, 2).forEach(function (v) {
+      if (v < lo || v > hi) return;
+      s += '<line x1="' + L + '" y1="' + Y(v) + '" x2="' + (W - R) + '" y2="' + Y(v) +
+           '" stroke="#eceae6" stroke-width="1"/>';
+      s += '<text x="' + (L - 9) + '" y="' + (Y(v) + 4) +
+           '" font-size="11" fill="#999" text-anchor="end">' + v.toFixed(0) + '</text>';
+    });
+
+    var full = "", past = "";
+    for (var j = 0; j < n; j++) {
+      var seg = (j ? "L" : "M") + X(j).toFixed(1) + " " + Y(fr[j].S).toFixed(1);
+      full += seg;
+      if (j <= frame) past += (j ? "L" : "M") + X(j).toFixed(1) + " " + Y(fr[j].S).toFixed(1);
+    }
+    s += '<path d="' + full + '" fill="none" stroke="#dedcd7" stroke-width="1.6"/>';
+    s += '<path d="' + past + '" fill="none" stroke="#3a3a38" stroke-width="2" ' +
+         'stroke-linejoin="round"/>';
+
+    var cx = X(frame), cy = Y(fr[frame].S);
+    s += '<line x1="' + cx + '" y1="' + T + '" x2="' + cx + '" y2="' + (H - B) +
+         '" stroke="#c9c8c4" stroke-width="1" stroke-dasharray="3 3"/>';
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="3.4" fill="#3a3a38"/>';
+    var right = cx > W - 120;
+    s += '<text x="' + (cx + (right ? -8 : 8)) + '" y="' + (cy - 7) +
+         '" font-size="12" fill="#111" text-anchor="' + (right ? "end" : "start") +
+         '">' + fr[frame].S.toFixed(0) + '</text>';
+
+    var oneDay = fr[0].d === fr[n - 1].d;
+    var stamp = function (x) { return oneDay ? x.t.slice(11) : x.d; };
+    s += '<text x="' + L + '" y="' + (H - 8) + '" font-size="11" fill="#999">' +
+         stamp(fr[0]) + '</text>';
+    s += '<text x="' + (W - R) + '" y="' + (H - 8) +
+         '" font-size="11" fill="#999" text-anchor="end">' + stamp(fr[n - 1]) + '</text>';
+    s += '<text x="' + L + '" y="14" font-size="11" fill="#999">' +
+         (oneDay ? "underlying, through the session" : "underlying, day by day") +
+         '</text>';
+    s += "</svg>";
+    strip.innerHTML = s;
+  }
+
+  function draw() {
+    var f = DATA[cur].frames[frame];
+    var i = mat;
+    var k = f.k[i], mk = f.m[i], md = f.f[i];
+    var W = 900, H = 720, L = 64, R = 18, T = 24, B = 48;
+    if (!k || !k.length) { holder.innerHTML = ""; return; }
+
+    // Fixed across every frame of this dataset, so the smile moves and the axis
+    // does not. Autoscaling per frame hid the dynamics entirely.
+    var yrg = DATA[cur].yr[i];
+    var ylo = yrg[0], yhi = yrg[1];
+    // In log-moneyness the smile is anchored to the forward, so a move in the
+    // underlying is subtracted out by construction and the surface looks
+    // stationary in the strike direction. The strike view puts it back.
+    var fwd = (f.w && f.w.length) ? f.w[i] : 0;
+    var useK = inStrike && fwd > 0;
+    var xrg = useK ? DATA[cur].kr[i] : DATA[cur].xr[i];
+    var xlo = xrg[0], xhi = xrg[1];
+    var xs = [];
+    for (var q = 0; q < k.length; q++) xs.push(useK ? fwd * Math.exp(k[q]) : k[q]);
+    var X = function (v) { return L + (v - xlo) / (xhi - xlo) * (W - L - R); };
+    var Y = function (v) { return H - B - (v - ylo) / (yhi - ylo) * (H - T - B); };
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+            LBL[i] + ' smile at ' + f.t + '">';
+    s += '<rect width="' + W + '" height="' + H + '" fill="#fcfcfb"/>';
+
+    ticks(ylo, yhi, 5).forEach(function (v) {
+      s += '<line x1="' + L + '" y1="' + Y(v) + '" x2="' + (W - R) + '" y2="' + Y(v) +
+           '" stroke="#e8e7e3" stroke-width="1"/>';
+      s += '<text x="' + (L - 9) + '" y="' + (Y(v) + 4) +
+           '" font-size="12" fill="#666" text-anchor="end">' +
+           (v * 100).toFixed(1) + '%</text>';
+    });
+    ticks(xlo, xhi, 6).forEach(function (v) {
+      s += '<line x1="' + X(v) + '" y1="' + T + '" x2="' + X(v) + '" y2="' + (H - B) +
+           '" stroke="#f1f0ed" stroke-width="1"/>';
+      s += '<text x="' + X(v) + '" y="' + (H - B + 19) +
+           '" font-size="12" fill="#666" text-anchor="middle">' +
+           (useK ? v.toFixed(0) : v.toFixed(2)) + '</text>';
+    });
+    var atm = useK ? fwd : 0;
+    if (xlo < atm && xhi > atm) {
+      s += '<line x1="' + X(atm) + '" y1="' + T + '" x2="' + X(atm) + '" y2="' + (H - B) +
+           '" stroke="#c9c8c4" stroke-width="1" stroke-dasharray="4 3"/>';
+      s += '<text x="' + (X(atm) + 5) + '" y="' + (H - B - 6) +
+           '" font-size="11" fill="#999">forward</text>';
+    }
+
+    var d = "";
+    for (var j = 0; j < xs.length; j++) d += (j ? "L" : "M") + X(xs[j]) + " " + Y(md[j]);
+    s += '<path d="' + d + '" fill="none" stroke="#FE6100" stroke-width="2.4"/>';
+    for (var j2 = 0; j2 < xs.length; j2++) {
+      s += '<circle cx="' + X(xs[j2]) + '" cy="' + Y(mk[j2]) +
+           '" r="3.6" fill="#648FFF" stroke="#fcfcfb" stroke-width="1"/>';
+    }
+
+    s += '<circle cx="' + (L + 9) + '" cy="' + (T + 7) + '" r="3.6" fill="#648FFF"/>';
+    s += '<text x="' + (L + 19) + '" y="' + (T + 11) +
+         '" font-size="12" fill="#444">market</text>';
+    s += '<line x1="' + (L + 76) + '" y1="' + (T + 7) + '" x2="' + (L + 100) +
+         '" y2="' + (T + 7) + '" stroke="#FE6100" stroke-width="2.4"/>';
+    s += '<text x="' + (L + 107) + '" y="' + (T + 11) +
+         '" font-size="12" fill="#444">Bergomi</text>';
+    s += '<text x="' + (W - R) + '" y="' + (T + 11) +
+         '" font-size="13" fill="#111" text-anchor="end">' + LBL[i] +
+         ' &#183; <tspan fill="#666">' + f.rs[i].toFixed(0) + ' bp</tspan></text>';
+    s += '<text x="' + (W / 2) + '" y="' + (H - 9) +
+         '" font-size="12" fill="#666" text-anchor="middle">' +
+         (useK ? "strike" : "log-moneyness") + '</text>';
+    s += "</svg>";
+    holder.innerHTML = s;
+
+    tagMat.textContent = LBL[i];
+    read.innerHTML = "<b>" + f.t + "</b> &nbsp; whole surface <b>" + f.r.toFixed(0) +
+                     " bp</b> &nbsp; market bid/ask " + f.s.toFixed(0) + " bp";
+    drawSpot();
+  }
+
+  function setSet(i) {
+    cur = i;
+    frame = Math.min(frame, DATA[cur].frames.length - 1);
+    sFrame.max = DATA[cur].frames.length - 1;
+    sFrame.value = frame;
+    Array.prototype.forEach.call(tabs.children, function (b, j) {
+      b.setAttribute("aria-pressed", j === i ? "true" : "false");
+    });
+    draw();
+  }
+
+  Array.prototype.forEach.call(tabs.children, function (b, j) {
+    b.addEventListener("click", function () { setSet(j); });
+  });
+  sFrame.addEventListener("input", function () { frame = +sFrame.value; draw(); });
+  sMat.addEventListener("input", function () { mat = +sMat.value; draw(); });
+  Array.prototype.forEach.call(axisBtns, function (b, j) {
+    b.addEventListener("click", function () {
+      inStrike = (j === 1);
+      Array.prototype.forEach.call(axisBtns, function (o, m) {
+        o.setAttribute("aria-pressed", m === j ? "true" : "false");
+      });
+      draw();
+    });
+  });
+  setSet(0);
+});
+</script>
+<!-- END SMILE VIEWER -->
+
+  <p>
+      Some goolging reveals that on 5 June 2026 a chip-led selloff took the
+      SP500 down 2.6% and the Nasdaq down 4%. The following Tuesday closed
+      almost unchanged after swinging three per cent during the day, as the chip
+      rebound failed. 
+      
+    </p>
+
+    <div style="text-align: center">
+      <img src="images/202609_intraday.svg"
+           alt="Three panels over two turbulent trading sessions: the fit
+                residual, the spot-variance correlation and the vol-of-vol, each
+                refitted every fifteen minutes"
+           style="max-width: 100%; height: auto;">
+    </div>
+
+    <p>
+      On the selloff itself the fitter barely flinched: fifty independent
+      calibrations spanning about three volatility basis points, from 19.2 to
+      21.9. On the whipsaw day it works visibly harder, with the worst snapshots
+      clustered in the hour when the index gave up its morning rally. The worst
+      fit of that day and the steepest correlation it reports are at the same
+      moment, a quarter of an hour after the low: the skew steepened into the
+      bottom and the model found the surface hard to match. The correlation
+      moved three to four times what it does on a quiet session, reflecting 
+      an increased demand for downside protection from market participants.
+    </p>
+
+    <p>
+      The vol-of-vol plot is interesting because it is very stable: it stays
+      within a 2.5% band on both days, while the correlation and the fit quality
+      both visibly respond to what the market is doing. It also confirms a 
+      simple mathematical fact: the model's Ornstein--Uhlenbeck mean reverting 
+      process has a stationary volatility of $\frac 1{\sqrt{2\kappa}}$, so 
+      the quotient $\nu = \omega/\sqrt{2\kappa}$ is what our model can identify, 
+      and we see it does hold still (as it should!) while the other parameters 
+      move more. 
+    </p>
+
+    <p>
+      What have we achieved? The fits are very good and, more to the point, they
+      are quite tight: the error is about 20-30 volatility basis points on
+      essentially every snapshot, against a market bid-ask of seven or eight,
+      and nothing seems to worsen at the open or over the trading session. The
+      three-month slice is the worst on most days, which is an unsurprising and
+      known model limitation: a single factor cannot decouple short and long
+      volatility shapes. 
+    </p>
+
+    <p>
+      The calibration speed is what one would hope from a direct function
+      evaluation. A single fit takes 150ms, while a Monte Carlo
+      calibration of the same model on comparable quotes took two minutes and
+      nine seconds! So we get a speed up of a factor of about eight
+      hundred.
+    </p>
+
+  
+    <h3>Does the pricer like the network?</h3>
+
+    <p>
+      To check whether our network is not hiding anything (after all, we are
+      calibrating using its own quotes and errors) I took the calibrated
+      parameters we got from the fast calibration routine, and handed them back
+      to the Monte Carlo engine the network was trained to mimick. I then
+      repriced every one of the fits at a million paths, to answer the question:
+      do the parameters we got fit the market when priced with the original
+      model? If so, how much has the network hidden when we used its own quotes
+      to calibrate and judge the output?
+    </p>
+
+    <div style="text-align: center">
+      <img src="images/202609_verify.svg"
+           alt="Left: the residual the surrogate reports against the residual the
+                Monte Carlo engine finds for the same parameters, every point
+                above the diagonal. Centre: a histogram of the difference,
+                concentrated between six and nine basis points and entirely
+                positive. Right: the worst single disagreement, per maturity."
+           style="max-width: 100%; height: auto;">
+    </div>
+
+    <p>
+      As usual, let me call <em>residual</em> the measure of how
+      far the model sits from the actual market quotes. Let us call
+      <em>disagreement</em> instead how far the network sits from the simulator
+      engine. The first is the fit error, while the second is the error in the
+      tool used to fit.
+    </p>
+
+    <p>
+      The result is that the disagreement is low, meaning that we have managed
+      to fit the engine well, but the reported residuals are slightly optimistic
+      by six to eight volatility basis points. In other words, where the network
+      claims e.g. 0.24% the engine finds 0.31%; where it claims 0.20% it finds 0.28%.
+      That is still a very good fit! The Monte Carlo calibration of this model I
+      tried reached twenty-five basis points on comparable quotes, and took a
+      hundred times longer but, at any rate, it is not the fit the optimiser
+      thought it had found, because the optimiser itself uses slightly 
+      fuzzy values.
+    </p>
+
+    <p>
+      Before reading anything into six tiny basis points, it is good to pause
+      and ask how much of it is simulation noise. Repricing the same fitted
+      parameters with sixteen independent seeds puts the engine's own variance
+      at about 2.5 bp per quote at one million paths. Since residuals neared
+      30bp, noise is a twentieth of the gap, meaning that something else is
+      afoot. In this case, this can come from the training data not being 
+      rich enough to reproduce certain features of the market data we 
+      fitted, but I have not investiged this much.
+    </p>
+
+    <h3>What can we take away from all of this?</h3>
+
+    <p>
+      The cost of not having a semi-analytic pricing formula is not high, as
+      long as we can generate useful training data from (and for) our pricer and
+      learn the model's pricing function on market instruments. Learning the forward map
+      turns a two-minute calibration into one that finishes in milliseconds.
+      Thus, the takeaway of this month's post is that when no fast pricer exists one
+      can learn one, and a learned pricer should be more robust than a learned
+      calibrator even though at first it seems to be the less ambitious of the
+      two. The reason has nothing to do with neural networks, it is just that a
+      model always determines its prices, but it does not always determine its
+      parameters.
+    </p>
+
+    <h3>References</h3>
+
+    <ol>
+      <li id="ref1">
+        Bergomi, L. (2005), "Smile Dynamics II," <i>Risk Magazine</i>,
+        October 2005, 67&ndash;73.
+      </li>
+      <li id="ref2">
+        Bergomi, L. (2016), <i>Stochastic Volatility Modeling</i>, Chapman and
+        Hall/CRC, Boca Raton.
+      </li>
+      <li id="ref3">
+        Gatheral, J. and Jacquier, A. (2014), "Arbitrage-free SVI volatility
+        surfaces," <i>Quantitative Finance</i>, 14(1), 59&ndash;71.
+      </li>
+      <li id="ref4">
+        Hernandez, A. (2016), "Model Calibration with Neural Networks,"
+        <i>Risk</i>, available at
+        <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2812140">SSRN</a>.
+      </li>
+      <li id="ref5">
+        Liu, S., Oosterlee, C. W. and Bohte, S. M. (2019), "Pricing Options and
+        Computing Implied Volatilities using Neural Networks," <i>Risks</i>,
+        7(1), 16.
+      </li>
+      <li id="ref6">
+        Horvath, B., Muguruza, A. and Tomas, M. (2021), "Deep learning
+        volatility: a deep neural network perspective on pricing and calibration
+        in (rough) volatility models," <i>Quantitative Finance</i>, 21(1),
+        11&ndash;27.
+      </li>
+      <li id="ref7">
+        Fang, F. and Oosterlee, C. W. (2008), "A Novel Pricing Method for
+        European Options Based on Fourier-Cosine Series Expansions,"
+        <i>SIAM Journal on Scientific Computing</i>, 31(2), 826&ndash;848.
+      </li>
+      <li id="ref8">
+        Baschetti, F., Bormetti G. and Romagnoli S. (2022), "The SINC way: A
+        fast and accurate approach to Fourier pricing,"
+        <i>Quantitative Finance</i>, 22(3), 427&ndash;446.
+      </li>
+    </ol>
+
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>
