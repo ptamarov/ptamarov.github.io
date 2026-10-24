@@ -131,40 +131,43 @@
           difference $\mu^* = 2\mu_1 -\mu_0$. 
         </li>
       </ol>
-      The time bias in $\mu^*$ will now be an order in magnitude smaller, 
+      The time bias in $\mu^*$ will now be an order in magnitude smaller,
       although, as it must be, the variance will have slightly increased.
-      Indeed, it will be about $\sqrt{4+1} \approx 2.23$ times higher 
-      than that of $\mu_0$, with the proviso that the runs are 
-      independent. If instead the coarse run reuses the Brownian increments
-      of the fine one, summed in pairs, the two estimates are strongly
-      correlated and the variance increases much less; Pag&egrave;s <a href="#ref4">[4]</a>
+      Indeed, it will be about $\sqrt{4+1} \approx 2.23$ times higher than that
+      of $\mu_0$, with the proviso that the runs are independent. If instead the
+      coarse run reuses the Brownian increments of the fine one, summed in
+      pairs, the two estimates are strongly correlated and the variance hardly
+      increases at all; Pag&egrave;s <a href="#ref4">[4]</a>
       studies this, together with extrapolation over more than two steps.
-      Chapter 6 of Glasserman <a href="#ref5">[5]</a> is a textbook account of the
-      discretization error and its extrapolation in a financial setting.
+      Chapter 6 of Glasserman <a href="#ref5">[5]</a> is a textbook account of
+      the discretization error and its extrapolation in a financial setting.
     </p>
 
     <h3>How well does the Euler--Richardson scheme perform?</h3>
 
     <p>
-      To test it, let us price a one-year monthly cliquet. We use
-      a Dupire local volatility model <a href="#ref6">[6]</a>, with the local volatility
-      surface obtained from an SVI fit <a href="#ref7">[7]</a> to a smile similar to that of SPX.
-      We fix a flat 3% rate, with a 1% dividend yield. The cliquet
-      pays the sum of the twelve monthly returns, each floored at zero
-      and capped at $2\%$.
-      This is a typical product for which one needs a simulation: its value
-      depends on the forward volatility smile, and there is no closed form
-      for its PV; in fact, it is well known that its PV is strongly 
-      model dependent. Its payoff has kinks at the floor and the cap, so it
-      is not smooth, as the Talay&ndash;Tubaro expansion asks; Bally and
-      Talay <a href="#ref8">[8]</a> show that the expansion still holds for merely measurable
-      payoffs, provided the diffusion is non-degenerate.
+      To test it, let us price a one-year monthly cliquet. We use a Dupire local
+      volatility model <a href="#ref6">[6]</a>, with the local volatility
+      surface obtained from an SVI fit <a href="#ref7">[7]</a> to a smile
+      similar to that of SPX. We fix a flat 3% rate, with a 1% dividend yield.
+      The cliquet pays the sum of the twelve monthly returns, each floored at
+      zero and capped at $2\%$. This is a typical product for which one needs a
+      simulation: its value depends on the forward volatility smile, and there
+      is no closed form for its PV; in fact, it is well known that its PV is
+      strongly model dependent. Its payoff has kinks at the floor and the cap,
+      so it is not smooth (as the Talay&ndash;Tubaro expansion asks). However,
+      Bally and Talay <a href="#ref8">[8]</a> show that the expansion still
+      holds for measurable payoffs, provided the diffusion is
+      non-degenerate.
     </p>
     <p>
      I varied the time step from 14 days down to a single day, once with two
      million paths per point (left panel) and once with 200,000 (right panel).
-     As reference, I took the Richardson estimate at a daily step with eight
-     million paths, which gives $10.4280\% \pm 0.0023\%$ coupon on a given 
+     For Richardson I used both independent runs, as the textbook rule has it
+     (other seeds, and the coarse mesh built on its own from the doubled step),
+     and coupled runs, on the nested meshes and the same Brownian paths. As
+     reference, I took the Richardson estimate at a daily step with eight
+     million paths, which gives $10.4279\% \pm 0.0010\%$ coupon on a given
      notional.
     </p>
 
@@ -173,112 +176,119 @@
            alt="Two panels, for two million and for 200,000 paths per point:
                 cliquet PV minus the reference against the time step in days,
                 on a logarithmic axis, for the Euler scheme and for its
-                Richardson extrapolation, with error bars of two standard
-                errors and the reference band around zero"
+                Richardson extrapolation with independent and with coupled
+                runs, with error bars of two standard errors and the
+                reference band around zero"
            style="max-width: 100%; height: auto;">
     </div>
 
     <p>
       With two million paths, the Euler bias is almost exactly linear in the
-      step, as it should be, and the Richardson trick removed most of it at 14
-      days ($+0.011$) and all of it, to within the noise, from a week down:
-      at a weekly step the extrapolated price is $10.4285 \pm 0.0047$, while
-      the plain weekly estimate is off by $0.7\%$. The daily Euler estimate
-      is still further from the reference than the weekly Richardson
-      estimate, at about three times the cost (see the table below).
+      step (as it should be!) and the Richardson trick with coupled runs removed
+      nearly all of it: what remains is $+0.012$ at 14 days, $+0.009$ at a week
+      and $+0.003$ at four days, against $-0.156$, $-0.076$ and $-0.041$ for
+      Euler, and it is within the noise from two days down. At a weekly step the
+      extrapolated price is $10.4369 \pm 0.0021$, while the plain weekly
+      estimate is off by $0.7\%$; the daily Euler estimate, off by $0.011$, is
+      no closer to the reference, at more than twice the cost (see the table
+      below).
     </p>
 
     <p>
-      With 200,000 paths, a more usual budget, the Euler estimates at 14 and 7
-      days are off by 23 and 12 standard errors, while the weekly Richardson
-      estimate sits at $10.432 \pm 0.015$, only a third of a standard error from the
-      8M path reference. It is fair to remark, that below four days, the
-      Euler bias is comparable to the noise, and the two schemes can
-      no longer be told apart. In both panels the standard errors behave as
-      predicted by our previous computation, with 
-      Richardson errors about $2.23$ times Euler's: $47$ against
-      $21$, and $150$ against $66$, all one in ten thousand.
+      With 200,000 paths, a smaller budget, the Euler estimates at 14 and 7 days
+      are off by 23 and 12 standard errors, while the weekly Richardson estimate
+      sits at $10.436 \pm 0.007$, about one standard error from the 8M path
+      reference. It is fair to remark, that below four days, the Euler bias is
+      comparable to the noise, and the two schemes can no longer be told apart.
+      As the two runs share their Brownian paths, the Richardson standard errors
+      are those of Euler, not $2.23$ times larger: $21$ against $21$, and $67$
+      against $66$, all one in ten thousand. The independent runs carry the
+      noise with the $2.23$ factor: their standard errors are $47$ and $150$ in
+      the same units, so they need five times the paths for the error bars of
+      the coupled runs. At two million paths their weekly estimate, $10.4285 \pm
+      0.0047$, looks better than the coupled one, but the two are $1.6$ standard
+      errors apart: the coupled runs are precise enough to show a residual bias
+      of about $0.009$ that the independent ones cannot see. 
     </p>
 
     <p>
-      The pricing times, on an Apple M5 with 10 cores, are:
+      The pricing times at two million paths, on an Apple M5 with 10 cores,
+      are (at 200,000 paths they are about ten times smaller):
     </p>
 
     <table style="margin: 0 auto; border-collapse: collapse;">
       <tr>
         <th style="text-align:left;  padding: 4px 14px;">step</th>
-        <th style="text-align:right; padding: 4px 14px;">Euler, 2M</th>
-        <th style="text-align:right; padding: 4px 14px;">Richardson, 2M</th>
-        <th style="text-align:right; padding: 4px 14px;">Euler, 200k</th>
-        <th style="text-align:right; padding: 4px 14px;">Richardson, 200k</th>
+        <th style="text-align:right; padding: 4px 14px;">Euler</th>
+        <th style="text-align:right; padding: 4px 14px;">Richardson, independent</th>
+        <th style="text-align:right; padding: 4px 14px;">Richardson, coupled</th>
       </tr>
       <tr>
         <td style="padding: 3px 14px;">14 days</td>
-        <td style="text-align:right; padding: 3px 14px;">1.34 s</td>
+        <td style="text-align:right; padding: 3px 14px;">1.53 s</td>
         <td style="text-align:right; padding: 3px 14px;">2.44 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.15 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.27 s</td>
+        <td style="text-align:right; padding: 3px 14px;">3.17 s</td>
       </tr>
       <tr>
         <td style="padding: 3px 14px;">7 days</td>
-        <td style="text-align:right; padding: 3px 14px;">1.94 s</td>
+        <td style="text-align:right; padding: 3px 14px;">2.08 s</td>
         <td style="text-align:right; padding: 3px 14px;">3.38 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.21 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.37 s</td>
+        <td style="text-align:right; padding: 3px 14px;">4.21 s</td>
       </tr>
       <tr>
         <td style="padding: 3px 14px;">4 days</td>
-        <td style="text-align:right; padding: 3px 14px;">2.94 s</td>
+        <td style="text-align:right; padding: 3px 14px;">3.12 s</td>
         <td style="text-align:right; padding: 3px 14px;">5.00 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.31 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.52 s</td>
+        <td style="text-align:right; padding: 3px 14px;">5.75 s</td>
       </tr>
       <tr>
         <td style="padding: 3px 14px;">2 days</td>
-        <td style="text-align:right; padding: 3px 14px;">5.34 s</td>
+        <td style="text-align:right; padding: 3px 14px;">5.41 s</td>
         <td style="text-align:right; padding: 3px 14px;">8.58 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.54 s</td>
-        <td style="text-align:right; padding: 3px 14px;">0.88 s</td>
+        <td style="text-align:right; padding: 3px 14px;">10.06 s</td>
       </tr>
       <tr>
         <td style="padding: 3px 14px;">1 day</td>
-        <td style="text-align:right; padding: 3px 14px;">9.98 s</td>
+        <td style="text-align:right; padding: 3px 14px;">9.86 s</td>
         <td style="text-align:right; padding: 3px 14px;">15.22 s</td>
-        <td style="text-align:right; padding: 3px 14px;">1.01 s</td>
-        <td style="text-align:right; padding: 3px 14px;">1.56 s</td>
+        <td style="text-align:right; padding: 3px 14px;">19.03 s</td>
       </tr>
     </table>
 
     <p>
-      As a run has a fixed cost besides the paths, the ratios are not quite
-      those of the step counts: Richardson costs about $1.7$ times a plain run
-      at the same step, and a daily Euler run costs about five times what a
-      weekly run costs. The conclusion: the weekly Richardson estimate is 
-      about <em>three times cheaper than the daily Euler estimate, and closer to the
-      reference.</em> Plotted against runtime, the Richardson curve lies
-      well above the Euler curve up to about five seconds: for the same budget,
-      the extrapolated estimate is several times closer to the reference. Beyond
-      that, at steps of two days and less, the two meet within the noise band.
+      Richardson costs about twice a plain run at the same step with coupled
+      runs, as the coarse run draws the random numbers of the fine one, and
+      $1.7$ times with independent runs; a daily Euler
+      run costs about five times what a weekly run costs. The conclusion: the
+      weekly Richardson estimate is <em>more than twice as cheap as the daily
+      Euler estimate, and at least as close to the reference.</em> Plotted
+      against runtime, both Richardson curves lie closer to the reference
+      than the Euler curve at every budget, several times closer up to about
+      five seconds; the coupled runs cost a fifth to a quarter more, and their
+      error bars are less than half as wide.
     </p>
 
     <div style="text-align: center">
       <img src="images/202610_richardson_cost.svg"
            alt="Cliquet PV minus the reference against the pricing time in
                 seconds, on a logarithmic axis, at two million paths, for the
-                Euler scheme and its Richardson extrapolation, each point
-                labelled with its time step and with error bars of two
-                standard errors"
+                Euler scheme and its Richardson extrapolation with independent
+                and with coupled runs, with error bars of two standard errors;
+                the Euler and coupled points are labelled with their time
+                steps"
            style="max-width: 100%; height: auto;">
     </div>
 
     <p>
-      Richardson extrapolation combines two grids, and this idea can be pushed
-      further. Multi-level Monte Carlo simulation, introduced by Giles <a
-      href="#ref9">[9]</a>, uses a whole sequence of them, with many cheap paths
-      on the coarse grids and few expensive ones on the fine grids, and is a
-      natural generalisation of the Richardson rule. Belomestny, Dickmann and
-      Nagapetyan <a href="#ref10">[10]</a> use multilevel approximation to price
-      American and Bermudan options.
+      The idea of Richardson extrapolation that combines two grids, taking two
+      ``levels'' of the simulation (one cheap, one more expensive) to merge them
+      into a better output can be taken further. Multi-level Monte Carlo
+      simulation, introduced by Giles <a href="#ref9">[9]</a>, uses a whole
+      sequence of them, with many cheap paths on the coarse grids and few
+      expensive ones on the fine grids, and is a natural generalisation of the
+      Richardson rule. To see this for concrete derivatives, Belomestny,
+      Dickmann and Nagapetyan <a href="#ref10">[10]</a> use multilevel
+      approximation to price American and Bermudan options.
     </p>
 
     <h3>References</h3>
