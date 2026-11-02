@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>November 2026</title> <!-- Title of the tab/webpage -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification"
+          content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
+    <link rel="stylesheet" href="../fstyle.css">
+    <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
+    <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
+    </script>
+  </head>
+  <body>
+    <style>
+    .aligncenter {
+      text-align: center;
+    }
+    .block {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    pre {
+      margin: 0;
+      padding: 1rem 1.25rem;
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre;
+    }
+    table.risk { margin: 0 auto; border-collapse: collapse; }
+    table.risk th { padding: 4px 14px; text-align: right; }
+    table.risk th:first-child { text-align: left; }
+    table.risk td { padding: 3px 14px; text-align: right; }
+    table.risk td:first-child { text-align: left; }
+    </style>
+    <ul id="navbar" class="navigationjus">
+      <li>
+        <a href="./202610.html" class="navigation">Previous post</a>
+      </li>
+      <li>
+        <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
+      </li>
+      <!-- <li>
+        <a href="./202612.html" class="navigation">Next post</a>
+      </li> -->
+    </ul>
+
+    <h2 class="aligncenter">November: PnL attribution</h2>
+
+    <p>
+      In <a href="./202603.html">March</a> we looked at adjoint algorithmic
+      differentiation and a small scalar tape written in Python, which we used
+      to compute the delta and vega of a Black&ndash;Scholes call. In this post, let
+      us look at how to couple AAD with a Monte Carlo simulation and, under a
+      stochastic volatility model, compare two products that are both long a
+      type of volatility: a plain call on the spot, and a call on the realised
+      volatility of the spot. The basic use of AAD is that one backward pass per
+      path gives the sensitivities of each of them to all model inputs,
+      including the parameters of the volatility process. We will see that the
+      two products turn out to have quite different risk profiles, and we will
+      use the AAD risks to check how well a Taylor expansion in the Greeks
+      explains their one-day PnL.
+    </p>
+
+    <p>
+      <b>The model.</b>
+      Under the risk-neutral measure, we will assume that spot follows a
+      lognormal diffusion with instantaneous volatility given by the exponential
+      of a mean-reverting Ornstein&ndash;Uhlenbeck factor:
+
+      $$\frac{dS}{S} = r\,dt + v\,dW, \\ v_t = v_0\, 
+      \exp\left(u_t - \theta_t\right), \\ 
+      du = \kappa(L - u)\,dt + \xi\, dZ, \qquad
+      u_0 = 0,$$
+
+      with $dW\,dZ = \rho\, dt$. The term $\theta_t$ is a deterministic
+      function of time, chosen to centre the volatility in some way. Here
+      we take $\theta_t = \tfrac12\mathrm{Var}(u_t)$, so that $\mathbb E(v_t)
+      = v_0$ when $L = 0$; $\theta_t = \mathrm{Var}(u_t)$ would centre the
+      variance instead, $\mathbb E(v_t^2) = v_0^2$, and $\theta_t = 0$ would
+      make $v_0$ the median.</p> 
+      
+      <p>
+        This is essentially a Bergomi one factor model,
+      but the use of the exponential Ornstein&ndash;Uhlenbeck volatility goes
+      back at least to Scott <a href="#ref1">[1]</a>. The factor $u$ is
+      Gaussian, and we get that $\mathbb E(v_t) = v_0\,
+      e^{L(1-e^{-\kappa t})}$. When $L = 0$, the volatility is centred on $v_0$
+      at all times, and $v_0$ multiplies the whole volatility path. The
+      volatility of volatility $\xi$ controls how far the volatility path strays
+      from $v_0$, and $\kappa$ how fast it returns.
+    </p>
+
+    <p>
+      The simulation uses a uniform grid of $N$ steps of size $h = T/N$. As it
+      is possible to do so, the factor $u$ is simulated exactly, and log-spot
+      takes Euler steps. To simulate the current market, we will use $S_0 = 100$,
+      $r = 3.50\%$, $T = 1.00$, $v_0 = 40\%$, $\kappa = 2.00$, $L = 0$, $\xi =
+      80\%$ and $\rho = -50\%$. We will use $N = 50$ steps (so approximately
+      weekly stepping) and $100{,}000$ paths.
+    </p>
+
+    <p>
+      <b>Greeks with AAD.</b>
+      For each path, we initialize inputs on the tape as leaves, as we
+      explained in the original post. After the payoff is computed, a backward
+      pass computes the adjoints of the leaves, and their averages over the paths
+      are the pathwise estimates of the first-order Greeks. This is the pathwise
+      method of Broadie and Glasserman <a href="#ref2">[2]</a>, and its
+      combination with adjoints was popularised by Giles and Glasserman <a
+      href="#ref3">[3]</a>. It requires the payoff to be Lipschitz in the
+      inputs, which is true for the two calls below, but not for a digital or a
+      barrier, for which one needs alternative methods to make AAD Greeks
+      reliable. Note that the step $h = T/N$ is computed on the tape from $T$,
+      so that Theta comes out of the backward pass as well, although one 
+      should be careful about this value when we want to capture the effect 
+      of time properly on a portfolio.
+    </p>
+
+    <p>
+      Unfortunately, second derivatives cannot be obtained in the same way: we
+      must compute gamma, the spot-volatility cross Greek and the volatility
+      gamma by central differences of the AAD first derivatives, bumping spot
+      and the starting value $u_0$ of the volatility factor below.
+      This costs four extra simulations, but bumping all inputs to get
+      the first- and second-order Greeks would have cost us much more.
+    </p>
+
+    <p>
+      <b>One tape for all paths.</b>
+      The tape of the March post records one node per operation, holding a
+      single number, but we can instead let each node hold a numpy array with
+      one value per path, and store its partial derivatives as arrays too. A
+      simulation then records a single tape of about $1{,}200$ nodes, and the
+      backward pass multiplies and adds arrays over all paths at once. The
+      leaves still receive one adjoint per path, so the standard errors and the
+      bumped second-order Greeks are computed as before. A simulation of
+      $100{,}000$ paths takes about $0.15$ seconds on an Apple M5 laptop,
+      including drawing the normals, recording the tape and the backward pass,
+      roughly $400$ times faster than a naive float tape. Much better!
+    </p>
+
+    <p>
+      To check that our implementation is sound, we can first check the model
+      collapses to that of Black&ndash;Scholes when volatility of volatility is
+      near zero. Doing this, we see that the Monte Carlo estimates agree with
+      the closed-form values within one standard error, so this check passes 
+      and does not find any issues with our implementation:
+    </p>
+
+    <table class="risk">
+      <tr><th></th><th>Monte Carlo</th><th>std. error</th><th>closed form</th></tr>
+      <tr><td>PV</td><td>17.360</td><td>0.098</td><td>17.358</td></tr>
+      <tr><td>delta</td><td>0.6137</td><td>0.0023</td><td>0.6131</td></tr>
+      <tr><td>vega</td><td>38.30</td><td>0.31</td><td>38.28</td></tr>
+      <tr><td>rho</td><td>44.01</td><td>0.15</td><td>43.96</td></tr>
+      <tr><td>theta</td><td>&minus;9.200</td><td>0.064</td><td>&minus;9.194</td></tr>
+    </table>
+
+    <p>
+      Second, for $\xi = 80\%$, $3{,}000$ paths and both payoffs below, we can
+      (perhaps unwillingly!) bump each of the inputs on the same random
+      numbers and check the resulting bump-based risks. The AAD estimates agree
+      with the bumps to a relative error below $0.0001\%$, except for three
+      derivatives of the call on realised volatility (strike, $v_0$ and elapsed
+      time), where it is about $0.01\%$. Thus, the AAD implementation seems to 
+      be working fairly well. Let's move on to pricing. 
+    </p>
+
+
+    <p>
+    <b>A call on realised volatility.</b>
+      So far, we only talked about Black&ndash;Scholes and vanilla European
+      calls, which are liquid instruments quoted in the market (for indices) or,
+      in the case of single stocks, American calls, which are &ldquo;soft
+      exotics&rdquo;. The second product that we are interested in is a call on
+      realised volatility, whose underlying &ldquo;volatility swap&rdquo; pays a
+      coupon proportional to the difference between the realised volatility of
+      the underlying stock and some pre-agreed strike. 
+     </p>
+      <p>
+      More precisely, if we entered the contract and the
+      deal starts at $t_0 = 0$ and matures at $T_*$, it pays $
+      N_\sigma\max(\sigma_R(T_*) - K_\sigma, 0)$ at $T_*$, for a notional $N_\sigma$
+      discussed below, where
+
+      $$\sigma_R^2(T_*) = \frac 1{{T_*}}\left[{A(\tau) + \sum_{\tau \le t_i < T_*} \log^2\left(
+          \frac{S_{t_{i+1}} }{S_{t_i}}\right)}\right]$$
+
+      is the annualised realised variance of the log-spot. We are writing $T_* =
+      \tau + T$ to split time into past and upcoming fixings. For this deal, let
+      us take the volatility strike $K_\sigma = v_0 = 40\%$ (at the money). 
+    </p>
+      
+    <p>
+      The term $A(\tau)$ is the sum of squared log-returns that have already
+      fixed up to time $\tau$ and $\tau$ the time elapsed; of course both are
+      zero at inception, and they are not needed to price a new contract, but
+      they are needed to get its value even one day on: by then one return is
+      fixed and the contract is seasoned. This means that we must put $A$ and
+      $\tau$ on the tape as inputs. A day passing moves $T$ down and $\tau$ up,
+      so the theta of the product is $$\Theta = -\partial V/\partial T +
+      \partial V/\partial \tau.$$
+    </p>
+
+    <p>
+      Besides time, three things move during a day: spot, the accrued variance
+      and the volatility. A spot move from $S$ to $S+\delta S$ adds
+      $$
+        \delta A = \log^2\left(1 + \frac{\delta S}{S}\right) \sim
+      \left(\frac{\delta S}{S}\right)^2
+      $$
+      to $A$. For the volatility, the state of the model is the factor $u$,
+      which moves by $\delta u$ during the day, so we also put its starting
+      value $u_0$ on the tape, together with the starting value $\theta_0$ of
+      the normaliser (more on this below). 
+      </p>      
+      <p>
+      <b>The PnL expansion of the model.</b>  
+      Writing $V_u$, $V_{uu}$, $V_{Su}$ and $V_\theta$ for the
+      derivatives in these starting values, the one-day PnL explain I use
+      is
+
+      \begin{align*}
+      \delta V &\approx
+            V_S\, \delta S
+          + \tfrac12 V_{SS}\, \delta S^2  \\
+          &+ V_u\, \delta u
+          + \tfrac12\, V_{uu}\, \delta u^2
+          + V_{Su}\, \delta S\, \delta u  \\
+          &+ \Theta\, \delta t
+          + \tfrac12 V_\theta\, \xi^2 \delta t
+          + \frac{\partial V}{\partial A}\, \delta A.
+      \end{align*}
+
+      This is a Taylor expansion to second order in the two random moves $\delta
+      S$ and $\delta u$, which are both of order $\sqrt{\delta t}$, and to first
+      order in the deterministic changes: the time $\delta t$ and the growth
+      $\tfrac12\xi^2\,\delta t$ of the normaliser; terms of order $\delta
+      t^{3/2}$ and higher are dropped. The drift of $u$, $\kappa(L -
+      u_0)\,\delta t$, would also enter at first order in time, but it is zero
+      at our starting point $u_0 = L = 0$. The accrual term is first order in
+      $A$, because $\delta A$, a squared return, is already of second order in
+      $\delta S$, as we computed above. In the scenarios below we must use the
+      exact $\delta A$, since that is how much the input $A$ actually moves. The
+      last term vanishes for the plain call, which of course does not depend on
+      $A$ at all. Carr and Lee <a href="#ref4">[4]</a> survey the pricing and
+      hedging of this and other volatility derivatives.
+    </p>
+
+    <p>
+      <b>The centering parameter.</b>
+      The term in $V_\theta$ can be confusing. The normaliser $\theta_t$ is a
+      model parameter, a deterministic function of time, and unlike $u$ it is
+      not a state variable. With our choice it happens to be written in terms of
+      the other parameters, but any centering would do. Putting $\theta_0$ on
+      the tape is the same trick as putting $\tau$ there: one day on, the
+      passage of time has moved the normaliser to $\theta_0 + \theta'(0)\,\delta
+      t$, here about $\tfrac12\xi^2\,\delta t$, and the change in value
+      $\theta'(0)\,V_\theta\,\delta t$ is part of the time decay. 
+    </p>
+      <p>
+      We will therefore use the full theta $$\Theta_{\mathsf{full}} =
+      -\frac{\partial V}{\partial T} + \frac{\partial V}{\partial \tau} +
+      \theta'(0)\, V_\theta, \qquad \theta'(0) = \tfrac12\xi^2.$$ Leaving this
+      term out would bias the PnL explain, because the growth of the normaliser
+      is what keeps the volatility centred: the term $\tfrac12 V_{uu}\,\delta
+      u^2$, whose average is $\tfrac12 V_{uu}\,\xi^2\,\delta t$, describes $u$
+      moving with the normaliser fixed, so on its own it would make the mean
+      volatility drift upwards.
+    </p>
+
+    <p>
+      <b>Vega notional and sizing. </b>The size of a plain call is a number of
+      shares, here one, and its delta says how many shares it
+      currently behaves like. The payoff of a call on realised volatility is a
+      <em>volatility</em> amount, a plain number, so there are no shares to
+      count. Instead, the underlying volatility swap states a notional
+      $N_\sigma$, the amount paid <em>per unit of volatility</em>. The notional
+      plays the role of the number of shares, and the sensitivity to volatility
+      plays the role of the delta. 
+      </p> 
+
+      <p>
+      Volatility and variance swaps are sized in the same way, by a vega
+      notional: the amount paid per volatility point near the strike, see <a
+      href="#ref5">[5]</a>, <a href="#ref6">[6]</a>. Since the volatility moves
+      through $u$ in the explain, we measure the sensitivity to volatility by
+      $V_u$, the change in value for a relative move of the instantaneous
+      volatility. The $V_u$ risk of one plain call is $6.62$, and that of the
+      realised-volatility call is $0.0950$ per unit of notional. To compare the
+      two products at the same $V_u$, we hold 10 plain calls against one
+      realised-volatility call with $N_\sigma = 696$:
+    </p>
+
+    <table class="risk">
+      <tr><th></th><th>10 plain calls</th><th>realised-vol call, $N_\sigma = 696$</th></tr>
+      <tr><td>PV</td><td>174.86</td><td>32.29</td></tr>
+      <tr><td>delta</td><td>6.56</td><td>0</td></tr>
+      <tr><td>gamma</td><td>0.095</td><td>0</td></tr>
+      <tr><td>$V_u$</td><td>66.17</td><td>66.17</td></tr>
+      <tr><td>$V_{uu}$</td><td>45.58</td><td>127.68</td></tr>
+      <tr><td>$V_{Su}$</td><td>0.125</td><td>0</td></tr>
+      <tr><td>$V_\theta$</td><td>&minus;38.56</td><td>&minus;36.24</td></tr>
+      <tr><td>$V_{v_0}$</td><td>372.4</td><td>396.5</td></tr>
+      <tr><td>$V_\xi$</td><td>4.91</td><td>41.93</td></tr>
+      <tr><td>$V_\rho$</td><td>7.77</td><td>0.10 &plusmn; 0.13</td></tr>
+      <tr><td>$V_A$</td><td>0</td><td>322.3</td></tr>
+      <tr><td>$\Theta$ (per year)</td><td>&minus;93.99</td><td>&minus;81.19</td></tr>
+      <tr><td>$\Theta_{\mathsf{full}}$ (per year)</td><td>&minus;106.33</td><td>&minus;92.79</td></tr>
+    </table>
+
+    <p>
+      The figure below shows PV at inception (no fixings) for the two
+      deals. The realised-volatility call does not depend on spot, and hardly
+      on $\rho$. Its value is set by $v_0$, $\xi$ and $\kappa$, which control
+      the distribution of the volatility path, while the plain calls barely
+      depend on $\xi$, $\kappa$ and $\rho$. The last panel shows $V_u / v_0$
+      for the volswap call: it behaves like the delta of a call struck at
+      $K_\sigma = 40\%$, so that $V_u$ itself behaves like a cash delta.
+    </p>
+
+    <div style="text-align: center">
+      <img src="images/202611_sensitivities.svg"
+           alt="Six panels comparing 10 plain calls with the realised-volatility
+                call with notional 696: PV against spot, initial volatility,
+                mean reversion, volatility of volatility and correlation, each
+                moved alone from its base value, and V_u divided by initial
+                volatility for the realised-volatility call, with the base
+                values marked by dashed lines"
+           style="max-width: 100%; height: auto;">
+    </div>
+
+    <p>
+      <b>Reading the Greeks.</b> The two positions match on $V_u$ but not
+      exactly on $V_{v_0}$, with $372.4$ against $396.5$. The two Greeks measure
+      different moves: $v_0$ impacts the <em>whole volatility path</em>, while a
+      shock to $u_0$ decays at rate $\kappa$, with a half-life of about $4$
+      months. Note that at <em>inception</em>, the volatility call has no 
+      exposure to spot, but it still makes money on large spot
+      moves, through the accrual term: the role of gamma is played by
+      $\partial V/\partial A$.</p> 
+      
+      <p>
+      Both products must pay theta for their convexity, and, as in the <a
+      href="./202607.html">July</a> post, the pricing equation explains exactly
+      how this works. The pricing PDE of this model on its state variables 
+      $(S,u,A)$ reads:
+      
+      $$
+      -\Theta_{\mathsf{full}} = rS\,V_S + \tfrac12 S^2 V_{SS} v_0^2 +
+      V_A v_0^2 + \tfrac12 V_{uu}\,\xi^2 + \rho S
+      v_0 \xi\, V_{Su} - rV.
+      $$ 
+      
+      Each Greek is paired with a break-even level, an
+      entry of the instantaneous covariance matrix of the state variables: the
+      spot volatility $v_0 = 40\%$ for gamma and for the accrual, the volatility
+      of volatility $\xi = 80\%$ for the convexity in $u$, and the covariance
+      $\rho v_0 \xi = -16\%$ for the cross term. Term by term, per year:
+    </p>
+
+    <table class="risk">
+      <tr><th>term</th><th>break-even</th><th>10 plain calls</th><th>realised-vol call</th></tr>
+      <tr><td>$rS\,\Delta$</td><td>drift</td><td>22.95</td><td>0</td></tr>
+      <tr><td>$\tfrac12\Gamma S^2 v_0^2$</td><td>$v_0$</td><td>76.07</td><td>0</td></tr>
+      <tr><td>$V_A\, v_0^2$</td><td>$v_0$</td><td>0</td><td>51.57</td></tr>
+      <tr><td>$\tfrac12 V_{uu}\,\xi^2$</td><td>$\xi$</td><td>14.59</td><td>40.86</td></tr>
+      <tr><td>$\rho S v_0 \xi\, V_{Su}$</td><td>$\rho v_0 \xi$</td><td>&minus;2.00</td><td>0</td></tr>
+      <tr><td>$-rV$</td><td>discounting</td><td>&minus;6.12</td><td>&minus;1.13</td></tr>
+      <tr><td>sum</td><td></td><td>105.49</td><td>91.30</td></tr>
+      <tr><td>$-\Theta_{\mathsf{full}}$ from the tape</td><td></td><td>106.33</td><td>92.79</td></tr>
+    </table>
+
+    <p>
+      The terms add up to the full theta within $1\%$ and $2\%$, so the model
+      can explain its PnL very well for both products. This should not come as a
+      surprise, as we are explaining the PnL using &ldquo;raw&rdquo; model
+      parameters, but the real test comes with explaining the PnL with 
+      instruments we can hedge withs; more on this in some later post. For the plain calls, the
+      gap is within one standard error of the Monte Carlo. For the
+      realised-volatility call, the gap comes from grid bias: once we 
+      get to 200 steps, the difference falls to $0.2\%$. 
+      </p> 
+
+      <p>
+      We can summarise what we see in the computation:
+    </p>
+      <ul>
+        <li>
+          <em>Delta and gamma of the call.</em>
+          The plain calls pay their theta mostly for gamma exposure, at the
+          break-even $v_0$, plus the carry of the delta hedge. A smaller part
+          for their convexity in $u$, at the break-even $\xi$, closes the gap.
+        </li>
+        <li>
+          <em>Accrual gamma for volswap.</em>
+          The volswap call pays a little over half of its theta for
+          the accrual, at the same break-even $v_0$, and the rest for its
+          convexity in $u$.
+        </li>
+        <li>
+           At the same $V_u$, the volswap call $V_{uu}$ is $127.7$ against
+           $45.6$ for the plain calls, and its exposure to $\xi$ is about $8.5$
+           times larger.
+        </li>
+        <li>
+          <em>Correlation.</em> The value of the volswap call barely moves
+          with the spot-volatility correlation: by less than $1\%$ between
+          $\rho = -90\%$ and $\rho = 90\%$. The expected realised variance
+          does not depend on $\rho$, and $\rho$ changes its distribution only
+          slightly.
+        </li>
+      </ul>
+
+    <h3>Conclusion and takeaways</h3>
+
+    <p>
+      We priced a plain call and a call on realised volatility in a
+      one-factor stochastic volatility model, and computed their Greeks with
+      a path-vectorised AAD tape. In the state variables of the model, spot,
+      the accrued variance and the volatility factor $u$, the pricing
+      equation balances the full theta to within $1$&ndash;$2\%$ and shows
+      what theta pays for: gamma and the accrual at the break-even $v_0$,
+      convexity in $u$ at the break-even $\xi$, and the cross term at $\rho
+      v_0 \xi$.
+    </p>
+
+    <h3>References</h3>
+
+    <ol>
+      <li id="ref1">
+        Scott, L. O. (1987), "Option pricing when the variance changes
+        randomly: theory, estimation, and an application," <i>Journal of
+        Financial and Quantitative Analysis</i>, 22(4), 419&ndash;438.
+      </li>
+      <li id="ref2">
+        Broadie, M. and Glasserman, P. (1996), "Estimating security price
+        derivatives using simulation," <i>Management Science</i>, 42(2),
+        269&ndash;285.
+      </li>
+      <li id="ref3">
+        Giles, M. and Glasserman, P. (2006), "Smoking adjoints: fast Monte
+        Carlo Greeks," <i>Risk</i>, 19(1), 88&ndash;92.
+      </li>
+      <li id="ref4">
+        Carr, P. and Lee, R. (2009), "Volatility derivatives," <i>Annual
+        Review of Financial Economics</i>, 1, 319&ndash;339.
+      </li>
+      <li id="ref5">
+        Demeterfi, K., Derman, E., Kamal, M. and Zou, J. (1999), "More than
+        you ever wanted to know about volatility swaps," Goldman Sachs
+        Quantitative Strategies Research Notes.
+      </li>
+      <li id="ref6">
+        Bossu, S., Strasser, E. and Guichard, R. (2005), "Just what you need
+        to know about variance swaps," JPMorgan Equity Derivatives.
+      </li>
+    </ol>
+
+
+<footer class="page-footer">
+<p>
+ <b>Disclaimer.</b>
+ Opinions expressed here are mine, and any material is provided for
+ informational purposes only and should not be interpreted in any other way.
+ All information discussed here is derived from publicly available sources and
+ does not include any confidential, proprietary, or non-public information.
+ Mention of specific firms, products, securities or assets, for example for
+ illustrative purposes, does not imply sponsorship or approval of such firms,
+ products, securities or assets.
+ </p>
+</footer>
+</body>
+</html>
