@@ -33,10 +33,10 @@
       non-negative processes, which assumes that we are interested in the
       evolution of the forward, and proposes dynamics of the form $df =\sigma_B
       f dW$. It is widely used as a quoting tool, since for a given
-      forward $f$, time to maturity $\tau$ strike $K$, and quote $Q$, we can
+      forward $f$, time to maturity $\tau$, strike $K$, and quote $Q$, we can
       always find a unique $\hat\sigma > 0$ such that $$Q = f\,\Phi(z_+) - K\,
       \Phi(z_-) $$ where $\Phi$ is the standard normal CDF, and $z_{\pm} =
-      \frac{z}{v} \pm \frac{v}2$ with $K = f\, e^z$ the log-moneyness and $v =
+      \frac{z}{v} \pm \frac{v}2$ with $f = K\, e^z$, so that $z = \log(f/K)$ is the log-moneyness, and $v =
       \sqrt{\tau} \hat\sigma$; the right-hand side of the display is of course
       the price of a call in the Black model above. In other words, instead of 
       quoting $Q$, market participants will quote $v$ or $\hat\sigma$ instead.
@@ -55,13 +55,15 @@
 
     <p>
     The simplest Hull--White model is a one-factor short rate model. Recall
-    that the short rate $r(s)$ is defined by requiring that $$-\log P(t,T) =
-    \int_t^T r(s)ds\quad\text{ for $t\leqslant T$},$$ where $P(t,T)$ is the
-    price at time $t$ of one unit of currency delivered at time $T$. It is a 
+    that the short rate $r(s)$ defines the numéraire $$M(t) =
+    \exp \int_0^t r(s)ds,$$ and that, in the numéraire measure,
+    $$P(t,T) = \mathbb E\left(\frac{M(t)}{M(T)} \,\Big|\, \mathcal F_t\right)
+    \quad\text{ for $t\leqslant T$},$$ where $P(t,T)$ is the
+    price at time $t$ of one unit of currency delivered at time $T$. The short rate is a
     theoretical construct that is not directly observable but is otherwise very 
     useful (much like local volatility or instantaneous volatility is not observable
     but useful to define model dynamics). The SDE driving this model is 
-    $$ dr(t) = \kappa(t) (\theta(t) - r(t)) dt + \sigma(t) dW(t) $$ 
+    $$ dr(t) = (\theta(t) - \kappa(t) r(t)) dt + \sigma(t) dW(t) $$
     so that $r(t)$ is a Gaussian process. All the calculations that follow are 
     contained in <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2737091">this paper</a> 
     by Christian Fries. The main functions we need are the following 
@@ -74,22 +76,22 @@
     I will use the notation $E(t,T) = E(t)/E(T)$ like Fries does. With it,
     it is not difficult to solve the SDE assuming knowledge of $\theta$, 
       $\kappa$ and $\sigma$: we can show directly that 
-      $$r(t) = r(0) + \int_0^t E(u,t) \theta(u)du + \int_0^t E(u,t) \sigma(u)dW(u).$$
+      $$r(t) = E(0,t)\, r(0) + \int_0^t E(u,t) \theta(u)du + \int_0^t E(u,t) \sigma(u)dW(u).$$
     </p>
 
     <p> One basic property that the model must have is matching the current 
     discount curve we observe in the market, which we will think as encoded by 
     the instantaneous forward $f(0,t)$. As the paper of Fries shows, 
     this can be achieved by selecting $\theta(t)$ to satisfy  
-    $$\theta(t)  = \frac12 \kappa(t)v'(t) + \frac 12 v''(t)$$ where $v(t) =
-    W(0,t)$. Put in another way, we want $$ \int_0^t E(u,t)\theta(u) du =
-    \frac{1}{2} v'(t)$$ which is quite useful: it says that $$r(t) = x(t) +
+    $$\theta(t)  = \partial_t f(0,t) + \kappa(t) f(0,t) + \frac12 \kappa(t)v'(t) + \frac 12 v''(t)$$ where $v(t) =
+    W(0,t)$. Put in another way, we want $$ E(0,t)\, r(0) + \int_0^t E(u,t)\theta(u) du =
+    f(0,t) + \frac{1}{2} v'(t)$$ which is quite useful: it says that $$r(t) = x(t) +
     f(0,t) + \frac 12 v'(t)$$ where $x(t) = E(t)^{-1}\int_0^t \sigma(s)E(s)
     dW(s)$. This follows, for example, from the fact that the expected value of
     $r(t)$ in the $t$-forward measure is $f(0,t)$. The conclusion: in the
     numéraire measure, $r(t)$ is Gaussian with mean equal to $f(0,t) + \frac 12
     v'(t)$ and variance $V(0,t)$. Another useful takeaway of this is we can
-    write the numérarire $N(t) = \exp \int_0^t r(s)ds$ explicitly: $$ N(t) =
+    write the numéraire $M(t)$ explicitly: $$ M(t) =
     \frac 1{P(0,t)} \exp\left(\frac{1}{2}v(t) + y(t)\right) $$ where $y(t)$ is
     normal with zero mean and variance $W(0,t)$. The pair $(x,y)$ is Gaussian,
     and it is easy to compute the covariance structure, because $\mathbb
@@ -111,7 +113,7 @@
     payoffs: options on zero coupon bonds, and caplets on discount forward
     rates, that is, forward rates implied by a fixed discount curve. I will also
     ignore issues of funding and spreads between IBOR rates and risk free rates
-    (RFRs). Given a discount curve $T\mapsto P(t,T)$ at some time $t$, the let
+    (RFRs). Given a discount curve $T\mapsto P(t,T)$ at some time $t$, let
     us put $$ f_\tau(T; t)  = \frac1{\tau}
     \left(\frac{P(t,T)}{P(t,T+\tau)}-1\right). $$ This is the fair (or "par")
     forward rate for the following transaction: deposit one unit of currency at
@@ -119,7 +121,7 @@
     above at time $T$; in other words, we say that the transaction fixes at time 
     $T$. For a notional amount $N$, the price at time $t$ of such agreement 
     with strike rate $k$ is  
-    $$ \tau N (f_\tau(T;t) - k).$$
+    $$ \tau N P(t,T+\tau) (f_\tau(T;t) - k).$$
   
   </p>
     <p>
@@ -127,8 +129,8 @@
     at time $T+\tau$ is $\tau N (f_\tau(T;T) - k)^+$, where $(-)^+$ denotes 
     the positive part of a number. Since it is obviously possible to rewrite 
     the payoff of the caplet using bond prices, it is not surprising that the 
-    price of a such caplet equals $(1+\tau k)$ times the value of a put on 
-    the zero bond maturing at time $T$ and deliverying at time $T+\tau$. The 
+    price of a such caplet equals $(1+\tau k)$ times the value of a put, expiring
+    at time $T$, on the zero bond maturing at time $T+\tau$. The
     strike for this put is $k' = \frac{1}{1+\tau k}$, which is the bond price 
     consistent with the strike $k$. So how do we price options on zero bonds?
   </p>
@@ -141,7 +143,7 @@
       so the volatility we get is just the difference $-\sigma(t)(B(t,T+\tau) - B(t,T))$. 
       Since the process is log-normal, usual Black--Scholes computations tell us that 
       we just need to compute the term variance of the above volatility, which 
-      is just $v = V(t,T) B(T,T+\tau)^2$. So we know how 
+      is just $v^2 = V(t,T) B(T,T+\tau)^2$. So we know how
       much the option on a dollar costs (without discounting), where $z_\pm$ 
       is defined as before, with the $v$ we just computed:
       $$ \mathsf{ZeroCall}_\tau(t,T,k') = f(t) \Phi(z_+) - k' \Phi(z_{-}).$$
@@ -208,8 +210,8 @@
     by the ECB for 2026-01-08, using a well-known parametric curve model, as in
     the table below. We also consider an alternative set of parameters that
     gives a curve resembling the USD term structure. For the European curve, we
-    used $\sigma = 1\%$ and $\kappa = 8\%$, we used  $\sigma = 2\%$ and $\kappa
-    = 16\%$ for the modified curve; in both cases, we set $\tau$ to 3m, which is 
+    used $\sigma = 1\%$ and $\kappa = 8\%$, and for the modified curve $\sigma = 2\%$ and $\kappa
+    = 16\%$; in both cases, we set $\tau$ to 3m, which is 
     a usual tenor for caplet forward rates. As you can see, the approximation is pretty
     good, and the error is only within a few basis points of the true quote
     computed using normal CDF and PPF functions. The approximation will of
