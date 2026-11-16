@@ -348,12 +348,12 @@
         <span class="kw">return</span> self <span class="op">*</span> other
 
     <span class="kw">def</span> <span class="fn">__neg__</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(<span class="op">-</span>(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(<span class="op">-</span>(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1.00</span>
         <span class="kw">return</span> num
 
-    <span class="kw">def</span> <span class="fn">__inv__</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(<span class="nm">1</span> <span class="op">/</span> (self.value), [self.node])
+    <span class="kw">def</span> <span class="fn">inv</span>(self) <span class="op">-></span> <span class="cl">number</span>:
+        num <span class="op">=</span> self.node.tape.from_nodes(<span class="nm">1</span> <span class="op">/</span> (self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1</span> <span class="op">/</span> self.value<span class="op">**</span><span class="nm">2</span>
         <span class="kw">return</span> num</pre>
 </div>
@@ -361,11 +361,10 @@
 <p>Tape class, which will simply hold the nodes, seed the calculation, and
 backpropagate for every single Monte Carlo path calculation, is straightforward
 to define. It also acts as a factory to create either new leaves, or new nodes
-out of existing ones. The <span class="fn">new_leaf</span> function is not just
-a convenience function; as it does not put the leaves on tape so as to accumulate 
-their adjoints over all paths; in a real production code, the leaves would live in 
-the tape, but the tape would be marked so as to backpropagate and clear the 
-memory usage up to but excluding the leaf nodes. Note also that
+out of existing ones. The <span class="fn">new_leaf</span> function does not put the leaf on the
+tape, so clearing the tape never touches the leaves. One could therefore create
+the leaves once and let their adjoints accumulate over all paths; here we
+recreate them on each path and average the per-path adjoints instead. Note also that
 backprop does not zero the adjoints before traversing the tape. Correctness here
 relies on the fact that a fresh set of node objects, where adjoints are initialized
 to zero, is created each path. In a production implementation where node memory
@@ -401,7 +400,7 @@ backpropagation cycle is a crucial step.
 
     <span class="kw">def</span> <span class="fn">new_leaf</span>(self, value: <span class="bi">float</span>) <span class="op">-></span> <span class="cl">number</span>:
         np <span class="op">=</span> <span class="cl">node</span>(<span class="nm">0</span>, <span class="nm">0.00</span>, [], [], self)
-        <span class="kw">return</span> <span class="cl">number</span>(value, np)
+        <span class="kw">return</span> <span class="cl">number</span>(value, np)</pre>
   </div>
 
     <p>
@@ -415,87 +414,87 @@ backpropagation cycle is a crucial step.
     <span class="cm"># continued from above...</span>
 
     <span class="kw">def</span> <span class="fn">add</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">+</span> other.value, [self.node, other.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">+</span> other.value, [self.node, other.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
         num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">1.00</span>
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">sub</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">-</span> other.value, [self.node, other.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">-</span> other.value, [self.node, other.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span>  <span class="nm">1.00</span>
         num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="op">-</span><span class="nm">1.00</span>
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">div</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">/</span> other.value, [self.node, other.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">/</span> other.value, [self.node, other.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span>  <span class="nm">1.00</span> <span class="op">/</span> other.value
         num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="op">-</span>self.value <span class="op">/</span> (other.value<span class="op">**</span><span class="nm">2</span>)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">mul</span>(self, other: <span class="cl">number</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">*</span> other.value, [self.node, other.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">*</span> other.value, [self.node, other.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> other.value
         num.node.partials[<span class="nm">1</span>] <span class="op">=</span> self.value
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">exp</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(exp(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(exp(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> exp(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">log</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(log(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(log(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="op">/</span> self.value
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">sin</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(sin(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(sin(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> cos(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">cos</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(cos(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(cos(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span>sin(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">sqrt</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(sqrt(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(sqrt(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">0.50</span> <span class="op">/</span> sqrt(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">square</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value<span class="op">**</span><span class="nm">2</span>, [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value<span class="op">**</span><span class="nm">2</span>, [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">2.00</span> <span class="op">*</span> self.value
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">add_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">+</span> other, [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">+</span> other, [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">div_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">/</span> other, [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">/</span> other, [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="op">/</span> other
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">mul_scalar</span>(self, other: <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(self.value <span class="op">*</span> other, [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(self.value <span class="op">*</span> other, [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> other
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">norm_cdf</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(normal_cdf(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(normal_cdf(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> normal_pdf(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">norm_pdf</span>(self) <span class="op">-></span> <span class="cl">number</span>:
-        num <span class="op">=</span> from_nodes(normal_pdf(self.value), [self.node])
+        num <span class="op">=</span> self.node.tape.from_nodes(normal_pdf(self.value), [self.node])
         num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="op">-</span>self.value <span class="op">*</span> normal_pdf(self.value)
         <span class="kw">return</span> num
 
     <span class="kw">def</span> <span class="fn">max</span>(self, other: <span class="cl">number</span> <span class="op">|</span> <span class="bi">float</span> <span class="op">|</span> <span class="bi">int</span>) <span class="op">-></span> <span class="cl">number</span>:
         <span class="kw">if</span> <span class="bi">type</span>(other) <span class="op">==</span> <span class="cl">number</span>:
-            num <span class="op">=</span> from_nodes(max(self.value, other.value), [self.node, other.node])
+            num <span class="op">=</span> self.node.tape.from_nodes(max(self.value, other.value), [self.node, other.node])
             <span class="kw">if</span> self.value <span class="op">></span> other.value:
                 num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span>
                 num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">0.00</span>
@@ -504,7 +503,7 @@ backpropagation cycle is a crucial step.
                 num.node.partials[<span class="nm">1</span>] <span class="op">=</span> <span class="nm">1.00</span>
             <span class="kw">return</span> num
         <span class="kw">elif</span> <span class="bi">type</span>(other) <span class="kw">in</span> (<span class="bi">int</span>, <span class="bi">float</span>):
-            num <span class="op">=</span> from_nodes(max(self.value, other), [self.node])
+            num <span class="op">=</span> self.node.tape.from_nodes(max(self.value, other), [self.node])
             num.node.partials[<span class="nm">0</span>] <span class="op">=</span> <span class="nm">1.00</span> <span class="kw">if</span> self.value <span class="op">></span> other <span class="kw">else</span> <span class="nm">0.00</span>
             <span class="kw">return</span> num
         <span class="kw">raise</span> <span class="bi">TypeError</span>(
@@ -540,15 +539,15 @@ backpropagation cycle is a crucial step.
     vegas:   <span class="bi">list</span>[<span class="bi">float</span>] <span class="op">=</span> []
 
     rng <span class="op">=</span> np.random.default_rng(seed)
-    tape = <span class="kw">tape</span>([])
+    tp = <span class="kw">tape</span>([])
 
     <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(num_paths):
 
-        tape.clear()                                          
+        tp.clear()                                          
         <span class="cm"># clear the tape for each path</span>
-        spot    <span class="op">=</span> tape.new_leaf(S)
-        vol     <span class="op">=</span> tape.new_leaf(bsvol)
-        drift   <span class="op">=</span> tape.new_leaf(rate) <span class="op">-</span> <span class="nm">0.50</span> <span class="op">*</span> vol <span class="op">*</span> vol    
+        spot    <span class="op">=</span> tp.new_leaf(S)
+        vol     <span class="op">=</span> tp.new_leaf(bsvol)
+        drift   <span class="op">=</span> tp.new_leaf(rate) <span class="op">-</span> <span class="nm">0.50</span> <span class="op">*</span> vol <span class="op">*</span> vol    
         logspot <span class="op">=</span> spot.log()
         sqrtT   <span class="op">=</span> <span class="bi">float</span>(np.sqrt(T))
         noise   <span class="op">=</span> rng.normal()
@@ -559,16 +558,18 @@ backpropagation cycle is a crucial step.
         payoffs.append(payoff.value)
 
         <span class="cm"># seed the tape: set adjoint of output node to 1</span>
-        tape.seed()     
+        tp.seed()     
         <span class="cm"># backprop along the tape</span>
-        tape.backprop() 
+        tp.backprop() 
 
         deltas.append(spot.node.adjoint)  <span class="cm"># dC/dS</span>
         vegas.append(vol.node.adjoint)    <span class="cm"># dC/dVol</span>
 
-    pv    <span class="op">=</span> <span class="bi">sum</span>(payoffs) <span class="op">/</span> num_paths
-    delta <span class="op">=</span> <span class="bi">sum</span>(deltas)  <span class="op">/</span> num_paths
-    vega  <span class="op">=</span> <span class="bi">sum</span>(vegas)   <span class="op">/</span> num_paths
+    <span class="cm"># discount the averages back to today</span>
+    df    <span class="op">=</span> <span class="bi">float</span>(np.exp(<span class="op">-</span>rate <span class="op">*</span> T))
+    pv    <span class="op">=</span> df <span class="op">*</span> <span class="bi">sum</span>(payoffs) <span class="op">/</span> num_paths
+    delta <span class="op">=</span> df <span class="op">*</span> <span class="bi">sum</span>(deltas)  <span class="op">/</span> num_paths
+    vega  <span class="op">=</span> df <span class="op">*</span> <span class="bi">sum</span>(vegas)   <span class="op">/</span> num_paths
 
     <span class="kw">return</span> pv, delta, vega</pre>
 </div>
@@ -584,7 +585,7 @@ backpropagation cycle is a crucial step.
             width="650vw"/>
                <br>
                <div class="caption">
-                 <b>Figure 2.</b>  The payoff of a call in the Black--Scholes 
+                 <b>Figure 2.</b>  The price of a call in the Black--Scholes 
                  model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
                  computed with the analytic formula and a Monte Carlo simulation 
                  with AAD.
@@ -629,11 +630,11 @@ backpropagation cycle is a crucial step.
           <a href="https://www.risk.net/topics/adjoint-algorithmic-differentiation-aad"><em>Adjoint algorithmic differentiation (AAD)</em></a>; collection of articles at risk.net;
         </li>
         <li>  
-          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4588939"><em>15 Years of Adjoint Algorithmic Differentiation in Finance</em>; 
-         </a>;  L. Capriotti, M. B. Giles;
+          <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4588939"><em>15 Years of Adjoint Algorithmic Differentiation in Finance</em></a>;
+          L. Capriotti, M. B. Giles;
         </li>
         <li>
-          <a href="https://antoinesavine.com/wp-content/uploads/2021/05/modern-computational-finance.pdf"><em>Modern computational finance: AAD and parallel simluations</em></a>;
+          <a href="https://antoinesavine.com/wp-content/uploads/2021/05/modern-computational-finance.pdf"><em>Modern computational finance: AAD and parallel simulations</em></a>;
           A. Savine.
         </li>
         <li>
