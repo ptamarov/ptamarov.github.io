@@ -70,7 +70,7 @@
       </li>
     </ul>
 
-    <h2 class="aligncenter">May: estimating the Dupiré--Gyöngy term</h2>
+    <h2 class="aligncenter">May: estimating the Dupire--Gyöngy term</h2>
 
     <p>
       The Dupire--Gyöngy condition states that any stochastic volatility model
@@ -79,7 +79,7 @@
       conditional on spot. Calibrating such a model therefore requires
       estimating $\mathbb{E}(\sigma(T)^2 \mid Q(T) = K)$ from Monte Carlo paths.
       In this post, we compare three estimators for this conditional expectation
-      in a one-factor stochastic volatility Bergomi model
+      in the two-factor Bergomi stochastic volatility model
       <a href="#ref1">[1,</a> <a href="#ref2">2]</a>: an OLS polynomial
       regression, a Gaussian kernel estimator, and a quantile-bin non-parametric
       estimator (NPE) with linear interpolation.
@@ -107,8 +107,12 @@
       - \dfrac{\omega^2}{2} \dfrac{1 - e^{-2\kappa t}}{2\kappa}\right)$$
 
     where $\xi_0(t)$ is the prevailing forward variance curve 
-    and $v(t) = \sigma(t)^2$. Note that the exponential term is 
-    the variance of $x(t)$. It is well known that if we were to 
+    and $v(t) = \sigma(t)^2$. Note that the fraction in the exponent is 
+    the variance of $x(t)$. The experiments in Sections 5–7 use the
+    two-factor version, in which $x(t)$ is replaced by a combination of two
+    such processes with mean-reversion speeds $\kappa_1, \kappa_2$, mixing
+    weight $\theta$, correlation $\rho_{12}$ between them, and spot-vol
+    correlations $\rho_1, \rho_2$ <a href="#ref2">[2]</a>. It is well known that if we were to 
     replace the model dynamics by a local volatility model 
     $$
     \frac{dQ(t)}{Q(t)} = \sigma_0(t,Q(t) ) dW(t), 
@@ -116,7 +120,7 @@
     we must have for all $(t,K)$ that 
 
     $$\mathbb E(\sigma(t)^2 \mid Q(t) = K) = \sigma_0(t,K)^2.$$
-    This is the Dupire--Gyöngy condition <a href="#ref3">[3,</a> <a href="#ref5">5]</a>.
+    This is the Dupire--Gyöngy condition <a href="#ref3">[3,</a> <a href="#ref4">4]</a>.
 
     Since we can compute the right hand side from market quotes, we can attempt
     to calibrate the Bergomi model to try and hit the market as best as
@@ -142,20 +146,21 @@
     Since we know that volatility is roughly U-shaped, it is reasonable to 
     consider polynomial approximations. We thus consider 
     $$\hat{g}(\tilde s) = \sum_{j=0}^{d} c_j\, P_j(\tilde s)$$
-    where $P_0, \ldots, P_d$ are some polynomials indexed by their degree
-    is the polynomial degree.  Since the resulting matrix for the OLS regression 
-    is only $(d+1)\times(d+1)$ regardless of $N$, inverting
-    it costs $O(d^3)$ and the dominant work is the $O(Nd)$ pass to populate
-    $\Phi$.  The resulting estimate is smooth, but a polynomial may not capture 
+    where $P_j$ is a polynomial of degree $j$ and $d$ is the maximal degree.
+    Let $\Phi$ be the $N\times(d+1)$ design matrix with entries
+    $\Phi_{ij} = P_j(\tilde s_i)$. The normal-equations matrix
+    $\Phi^\top\Phi$ is only $(d+1)\times(d+1)$ regardless of $N$, so
+    inverting it costs $O(d^3)$, and the dominant work is the $O(Nd^2)$ needed
+    to form it.  The resulting estimate is smooth, but a polynomial may not capture 
     more complex curvature profiles, and can introduce bias in the estimation. 
     However, other bases can be considered that may be more appropriate given
     the observed shape of the local volatility produced by the model
-    <a href="#ref6">[6]</a>.
+    <a href="#ref5">[5]</a>.
     </p>
 
     <h3>3. Kernel estimators</h3>
 
-    The Nadaraya--Watson estimator <a href="#ref7">[7,</a> <a href="#ref11">11]</a>
+    The Nadaraya--Watson estimator <a href="#ref6">[6,</a> <a href="#ref10">10]</a>
     replaces a global polynomial with a weighted local average, so that the
     final value of $\hat g$ is an aggregate of "smoothed deltas" at each sampled
     point $s_i$. At each query point $s$, we then define
@@ -173,15 +178,15 @@
     bandwidths will produce a rougher profile and may overfit, while large
     bandwidths may introduce bias. Thus, a good bandwidth choice will balance
     these two sources of error and minimise the mean squared error of the estimate
-    <a href="#ref10">[10]</a>.
+    <a href="#ref9">[9]</a>.
 
     <p>
     <b>Silverman's rule.</b> One option is to go by Silverman's rule
-    <a href="#ref9">[9]</a>, which proposes a bandwidth of
+    <a href="#ref8">[8]</a>, which proposes a bandwidth of
     $h = 1.06\,\hat\sigma\, N^{-1/5}$ where $\hat\sigma$ is the sample standard
     deviation of $\log Q(T)$. The rule minimises the asymptotic mean integrated
-    squared error under a Gaussian model for $g$, and performs well when the
-    log-spot is approximately normally distributed, as in our case.
+    squared error when the density of $\log Q(T)$ is Gaussian, and is a
+    reasonable heuristic here because the log-spot is close to normal.
     </p>
 
     <h3>4. Non-parametric estimators</h3>
@@ -198,7 +203,7 @@
     Unlike the kernel estimator, this makes no smoothness assumption on $g$
     and requires no bandwidth selection, although it does require us to choose
     how many bins we will use in the process; for the bin count one may follow Scott's
-    $N^{1/3}$ rule <a href="#ref8">[8]</a>. Its main limitation is the
+    $N^{1/3}$ rule <a href="#ref7">[7]</a>. Its main limitation is the
     piecewise-linear form of the interpolant, which can appear rough when the
     within-bin variance of $v$ is large, such as high vol-of-vol regimes.
     </p>
@@ -278,8 +283,8 @@
            alt="Estimator comparison: mean-reversion speed kappa1 sweep"
            style="max-width:100%; height:auto;">
       <div class="caption" style="text-align:left">
-        <b>Figure 7.</b> Same comparison for varying slow mean-reversion speed $\kappa_2$. Just like 
-        $\theta$, the impact on local-volatility is small compared to the other three parameters.
+        <b>Figure 6.</b> Same comparison for varying mean-reversion speed $\kappa_1$.
+        The impact on local volatility is small compared to the other parameters.
       </div>
     </div>
 
@@ -288,9 +293,8 @@
     NPE curve can become visibly rough for certain parameters (e.g. large mean
     reversion, high vol-of-vol and/or zero correlation). Of course, the OLS fit
     stays smooth by construction, possibly at the cost of some small bias.
-    Finally, the kernel provides a compromise between the two: it is smooth and
-    unbiased, but does carry over some of the Monte Carlo noise at high
-    vol-of-vol.
+    Finally, the kernel provides a compromise between the two: it is smooth, has less bias than the polynomial fit, but carries over
+    some of the Monte Carlo noise at high vol-of-vol.
     </p>
 
     <h3>7. Convergence with sample size</h3>
@@ -307,7 +311,7 @@
            alt="Convergence of kernel estimator with sample size"
            style="width:75%; height:auto;">
       <div class="caption" style="text-align:left">
-        <b>Figure 8.</b> Kernel estimator curves for $N$ from 5k (lightest) to
+        <b>Figure 7.</b> Kernel estimator curves for $N$ from 5k (lightest) to
         1M (purple). The kernel estimator gives a very good estimate of the
         local-volatility smile.
       </div>
@@ -317,7 +321,7 @@
            alt="Convergence of NPE estimator with sample size"
            style="width:75%; height:auto;">
       <div class="caption" style="text-align:left">
-        <b>Figure 9.</b> NPE estimator curves for $N$ from 5000 (gray) to 1
+        <b>Figure 8.</b> NPE estimator curves for $N$ from 5000 (gray) to 1
         million (purple). The NPE estimator still preserves some of the Monte
         Carlo noise but otherwise produces a good estimate that is stable at 
         around 100000 samples.
@@ -328,7 +332,7 @@
            alt="Convergence of OLS estimator with sample size"
            style="width:75%; height:auto;">
       <div class="caption" style="text-align:left">
-        <b>Figure 10.</b> OLS estimator curves for $N$ from 5000 (gray) to 1
+        <b>Figure 9.</b> OLS estimator curves for $N$ from 5000 (gray) to 1
         million (purple). Compared to the other estimators, the OLS estimator
         stabilizes relatively quickly.
       </div>
@@ -337,13 +341,10 @@
     <p>
     The kernel and OLS estimates are visually stable already around
     $N=100\,000$: the curves at 100k, 250k, 500k and 1M are nearly
-    indistinguishable. The NPE requires a somewhat larger sample before the
-    piecewise-linear interpolant settles at the wings, so the resolution of the
-    NPE curve improves more slowly than the Monte Carlo noise of the individual
-    bin means. At low number of samples, the kernel estimator and NPE show 
-    lack of convergence around the wings, which is expected due to the way 
-    the bins become denser as the number of samples increased and are able to 
-    capture extreme sample points.
+    indistinguishable. The NPE needs a similar sample size, but its wings stay rougher, because
+    the outer bins are wide and contain few samples. At low sample sizes both
+    the kernel estimator and the NPE are unreliable in the wings, where there
+    are few paths.
   </p>
 
     <h3>References</h3>
@@ -359,34 +360,34 @@
       <li id="ref3">
         Dupire, B. (1994), “Pricing with a Smile,” <i>Risk</i>, 7(1), 18–20.
       </li>
-      <li id="ref5">
+      <li id="ref4">
         Gyöngy, I. (1986), "Mimicking the One-Dimensional Marginal Distributions
         of Processes Having an Ito Differential," <i>Probability Theory and
         Related Fields</i>, 71, 501–516.
       </li>
-      <li id="ref6">
+      <li id="ref5">
         Longstaff, F. A. and Schwartz, E. S. (2001), "Valuing American Options
         by Simulation: A Simple Least-Squares Approach," <i>The Review of
         Financial Studies</i>, 14(1), 113–147.
       </li>
-      <li id="ref7">
+      <li id="ref6">
         Nadaraya, E. A. (1964), "On Estimating Regression," <i>Theory of
         Probability and Its Applications</i>, 9(1), 141–142.
       </li>
-      <li id="ref8">
+      <li id="ref7">
         Scott, D. W. (1979), "On Optimal and Data-Based Histograms,"
         <i>Biometrika</i>, 66(3), 605–610.
       </li>
-      <li id="ref9">
+      <li id="ref8">
         Silverman, B. W. (1986), <i>Density Estimation for Statistics and Data
         Analysis</i>, Chapman &amp; Hall/CRC, London.
       </li>
-      <li id="ref10">
+      <li id="ref9">
         Wand, M. P. (1994), "Fast Computation of Multivariate Kernel
         Estimators," <i>Journal of Computational and Graphical Statistics</i>,
         3(4), 433–445.
       </li>
-      <li id="ref11">
+      <li id="ref10">
         Watson, G. S. (1964), "Smooth Regression Analysis," <i>Sankhyā:
         The Indian Journal of Statistics, Series A</i>, 26(4), 359–372.
       </li>
