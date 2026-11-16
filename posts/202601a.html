@@ -48,7 +48,7 @@
       we want to compute the function $$ U(t,x) = \mathbb E\left( e^{-\int_0^t
       r(s)ds} \mid x(t) = x\right) p_t(x)$$ where $p_t(x)$ is the density of
       $x(t)$. The reason is quite simple: this function acts as a kernel to compute
-      the payoff of any European claim contigent on the state of $r$ at some
+      the payoff of any European claim contingent on the state of $r$ at some
       future time, since conditioning on the value of $x(t)$, we have that 
         $$ \mathbb E\left(
       e^{-\int_0^t r(s)ds} f(x(t))\right) = \int_{\mathbb R}U(t,x) f(x)dx. 
@@ -63,7 +63,7 @@
 
     <p>
       We use the following elementary fact: if $X$ and $Y$ are Gaussian with 
-	    mean zero and covariance $c$ and variances $\sigma_X$ and $\sigma_Y$. Then 
+	    mean zero and covariance $c$ and variances $\sigma_X^2$ and $\sigma_Y^2$. Then 
 	    $$ 
 	        \mathbb E(e^{-Y} \mid X = x) =  
 	            \exp\left(-\frac12\frac{c^2 + 2c x}{\sigma_X^2}  + \frac 12 \sigma_Y^2\right).$$ 
@@ -76,7 +76,7 @@
 
     <p>
       To apply this result, we just need to go back to the previous post and
-      recall the that $y(t) = \int_0^t x(s)ds$, and that $x(t)$ and $r(t)$
+      recall that $y(t) = \int_0^t x(s)ds$, and that $x(t)$ and $r(t)$
       differ by the forward rate term and the convexity term $v'(t)$. Thus, we
       can incorporate  the factor $P(0,t) e^{-\frac 12 v(t)}$ that appears after
       integrating $r(t)$ later, and focus on $$ \mathbb E(e^{-y(t)} \mid x(t) =
@@ -102,12 +102,12 @@
    
    so multiplying this with the above expression, we get 
   
-  $$ e^{-\frac 12 v'(t)} \mathbb E\left( 
+  $$ e^{-\frac 12 v(t)} \mathbb E\left( 
 	e^{-\int_0^t x(s)ds} \mid x(t) = x \right)p_t(x)  = \\
   \frac{1}{\sqrt{2 \pi V(0,t)}} \exp\left(
 		-\frac 18 \frac{ v'(t)^2 + 4 v'(t) x + 4x^2 }{ V(0,t)}
 	\right). $$
-  The only thing left to do is to notice the denominator is $(v'(t)+2x)^2$ 
+  The only thing left to do is to notice the numerator is $(v'(t)+2x)^2$ 
   and that the term $f(0,t)$ contributes the term $P(0,t)$ to the integral.
   The takeaway is you can now use Gaussian quadrature (or your favourite 
   quadrature method) to quickly compute European payoffs using $U(t,x)$. 
