@@ -48,8 +48,8 @@
       <ul>
         <li>
           For a fixed forward and valuation date, $v(x)$ is not constant with 
-          $x$. In fact, we see that $v(x) > v(0)$ when $x < 0$, and that $v(x) < v(0)$ 
-          when $x > 0$.  In other words, puts are sold at a premium and calls are 
+          $x$. In fact, we see that $v(x) > v(0)$ when $x > 0$, and that $v(x) < v(0)$ 
+          when $x < 0$.  In other words, puts are sold at a premium and calls are 
           sold at discount from the prices implied by a model with constant volatility 
           equal to $v(0)$.
         </li>
@@ -137,7 +137,7 @@
 
      <p>
       <b>Fundamental result.</b> 
-    There always exist 
+    There always exists 
     a unique 3-vector $y$, which we will call the Vanna--Volga weight 
     vector, such that 
     $$C^{\mathsf{MKT}}(x) - C(x,v_0) = y \cdot \mathsf{VolRisk}(x,v_0)$$
@@ -167,7 +167,7 @@
       </p>
 
     <p>
-      <em>Proof.</em> The equation $A^\perp y = c$ says precisely that 
+      <em>Proof.</em> The equation $A^\top y = c$ says precisely that 
       the equation above holds for $x_1, x_2$ and $x_3$. ||
     </p>
      
@@ -176,14 +176,14 @@
       Suppose that $(x_1,x_2,x_3)$ are three different log-moneyness points, 
       and let $w$ be the unique solution to the system $Aw = b$. Then we also 
       have that 
-      $$C^{\mathsf{MDL}}(x) = C(x,v_0) + c^\perp w.$$
+      $$C^{\mathsf{MDL}}(x) = C(x,v_0) + c^\top w.$$
       In other words, the model price is given by the naive Black--Scholes quote 
       plus the weighted excess cost of the three hedging options against their 
       naive Black--Scholes quote. 
       </p>
 
       <p><em>Proof.</em>
-      We have that $y^\perp b= y^\perp Aw = c^\perp w$. ||
+      We have that $y^\top b= y^\top Aw = c^\top w$. ||
       </p>
 
     <h3>4. A concrete example and final comments</h3>
@@ -235,7 +235,7 @@
                <div class="caption">
                  <b>Figure 2.</b> Market and model volatility quotes, and 
                  the absolute error in basis points. The implied volatility of the model was 
-                 back out from the quotes provided by the model; it is able to recover the 
+                 backed out from the quotes provided by the model; it is able to recover the 
                  original synthetic smile with very good precision.
                 </div>
     </div>
