@@ -81,7 +81,7 @@
       The inverse (calibration) map is the more ambitious of the two, since it
       removes the optimiser entirely, but it is thus much more fragile: it only
       exists as a function if distinct parameter sets produce distinct surfaces.
-      If this is not the case, no amount of training data that can help us, as
+      If this is not the case, no amount of training data can help us, as
       there is just no function to learn to begin with! At any rate, both
       approaches need the same input: a large collection of pairs consisting of
       model parameters and the quotes they generate. In particular, the 
@@ -140,11 +140,10 @@
       paths. Although there may be some corners to cut, this is not the point of
       the post, so I will ignore any clever optimisations, which would at any
       rate only speed up the generation of the data set to be learned. Note also
-      that the characteristic function of this model (and even some rough
-      versions) can be approximated (its computation involves a "fractional"
-      version of the Riccati ODEs one can solve by hand) and thus one can go
-      back to the COS method, but that's another story; some details can be
-      found in
+      that for related models, such as rough Heston, the characteristic
+      function solves a "fractional" version of the Riccati ODEs and can be
+      approximated, so one can go back to Fourier methods, but that's another
+      story; some details can be found in
       <a href="#ref8">[8]</a>.
     </p>
 
@@ -192,7 +191,7 @@
     </div>
 
     <p>
-      The corrected curve falls like $n^{\frac 3{10}}$, and at a million
+      The corrected curve falls like $n^{-\frac 3{10}}$, and at a million
       surfaces it reproduces the engine to about five basis points of
       volatility, which is well below the observed at-the-money bid-ask spread
       on liquid markets such as those of SPX options. Restricted to a region of
@@ -206,12 +205,12 @@
     <p>
       With the learned pricing function at hand, the calibration is an ordinary
       least-squares problem, with the bonus that the objective is easily
-      differentiable, in the sense that the derivative of the surface with
-      respect to the parameters is available to machine precision, at about the
-      cost of one more evaluation due to the usual backpropagation algorithm.
+      differentiable: its gradient with respect to the parameters is available
+      to machine precision at about the cost of one more evaluation, thanks to
+      backpropagation.
       The practical consequence is that the whole fit is fast enough to run from
       e.g. different starting points and keep the best, giving us a cheap way to
-      avoid any possible local minimum.
+      reduce the risk of ending in a local minimum.
     </p>
     
     <p>
@@ -456,7 +455,7 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
 <!-- END SMILE VIEWER -->
 
   <p>
-      Some goolging reveals that on 5 June 2026 a chip-led selloff took the
+      Some googling reveals that on 5 June 2026 a chip-led selloff took the
       SP500 down 2.6% and the Nasdaq down 4%. The following Tuesday closed
       almost unchanged after swinging three per cent during the day, as the chip
       rebound failed. 
@@ -467,7 +466,7 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
       <img src="images/202609_intraday.svg"
            alt="Three panels over two turbulent trading sessions: the fit
                 residual, the spot-variance correlation and the vol-of-vol, each
-                refitted every fifteen minutes"
+                refitted every five to fifteen minutes"
            style="max-width: 100%; height: auto;">
     </div>
 
@@ -486,19 +485,18 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
     <p>
       The vol-of-vol plot is interesting because it is very stable: it stays
       within a 2.5% band on both days, while the correlation and the fit quality
-      both visibly respond to what the market is doing. It also confirms a 
-      simple mathematical fact: the model's Ornstein--Uhlenbeck mean reverting 
-      process has a stationary volatility of $\frac 1{\sqrt{2\kappa}}$, so 
-      the quotient $\nu = \omega/\sqrt{2\kappa}$ is what our model can identify, 
-      and we see it does hold still (as it should!) while the other parameters 
-      move more. 
+      both visibly respond to what the market is doing. This is consistent with a
+      simple fact: the Ornstein--Uhlenbeck factor has stationary volatility
+      $\frac 1{\sqrt{2\kappa}}$, so $\nu = \omega/\sqrt{2\kappa}$ is the
+      combination the smiles pin down best, and it holds still while the other
+      parameters move more. 
     </p>
 
     <p>
-      What have we achieved? The fits are very good and, more to the point, they
-      are quite tight: the error is about 20-30 volatility basis points on
-      essentially every snapshot, against a market bid-ask of seven or eight,
-      and nothing seems to worsen at the open or over the trading session. The
+      What have we achieved? The fits are good and, more to the point, consistent:
+      the error is about 20–30 volatility basis points on essentially every
+      snapshot, three to four times the market bid–ask of seven or eight, and
+      it does not worsen at the open or over the session. The
       three-month slice is the worst on most days, which is an unsurprising and
       known model limitation: a single factor cannot decouple short and long
       volatility shapes. 
@@ -519,7 +517,7 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
       To check whether our network is not hiding anything (after all, we are
       calibrating using its own quotes and errors) I took the calibrated
       parameters we got from the fast calibration routine, and handed them back
-      to the Monte Carlo engine the network was trained to mimick. I then
+      to the Monte Carlo engine the network was trained to mimic. I then
       repriced every one of the fits at a million paths, to answer the question:
       do the parameters we got fit the market when priced with the original
       model? If so, how much has the network hidden when we used its own quotes
@@ -550,8 +548,8 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
       by six to eight volatility basis points. In other words, where the network
       claims e.g. 0.24% the engine finds 0.31%; where it claims 0.20% it finds 0.28%.
       That is still a very good fit! The Monte Carlo calibration of this model I
-      tried reached twenty-five basis points on comparable quotes, and took a
-      hundred times longer but, at any rate, it is not the fit the optimiser
+      tried reached twenty-five basis points on comparable quotes, and took about
+      eight hundred times longer but, at any rate, it is not the fit the optimiser
       thought it had found, because the optimiser itself uses slightly 
       fuzzy values.
     </p>
@@ -559,12 +557,12 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
     <p>
       Before reading anything into six tiny basis points, it is good to pause
       and ask how much of it is simulation noise. Repricing the same fitted
-      parameters with sixteen independent seeds puts the engine's own variance
-      at about 2.5 bp per quote at one million paths. Since residuals neared
-      30bp, noise is a twentieth of the gap, meaning that something else is
-      afoot. In this case, this can come from the training data not being 
+      parameters with sixteen independent seeds puts the engine's own noise
+      at about 2.5bp per quote at one million paths. Independent noise of that
+      size inflates a 30bp RMS residual by only about $2.5^2/(2\cdot 30) \approx
+      0.1$bp, a small fraction of the 6–8bp gap, so something else is afoot. In this case, this can come from the training data not being 
       rich enough to reproduce certain features of the market data we 
-      fitted, but I have not investiged this much.
+      fitted, but I have not investigated this much.
     </p>
 
     <h3>What can we take away from all of this?</h3>
