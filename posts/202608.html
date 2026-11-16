@@ -153,7 +153,7 @@
       Their method works well: there are published reference prices for the
       Heston model computed to many more digits than double precision carries,
       and a careful Go implementation of the above reproduces them to great
-      accuracy. This is important to keep in mind, as rest of this post is
+      accuracy. This is important to keep in mind, as the rest of this post is
       mostly about the limits of their approach, and it would be easy to come
       away with a wrong impression that the adaptive quadrature does not have
       merit. Plainly said, for ordinary parameters and ordinary maturities this
@@ -194,7 +194,7 @@
       This is exactly what Fang and Oosterlee's COS method does
       <a href="#ref4">[4]</a>. The idea is to stop trying to compute the
       integral and instead reconstruct the density; after all, European prices 
-      can be read off immediately once the density is explictly found.
+      can be read off immediately once the density is explicitly found.
       The observation it rests on is that $\varphi$ and the density $p$ of the
       log-return are an inverse Fourier pair, in the sense that
       \[
@@ -316,7 +316,7 @@
       and $c_4$ is there to accommodate densities that are sharply peaked with
       fat tails, which is the short-maturity regime for many models. Using only
       a measure of the mean level of variance would not do the job, because it
-      says nothing about how disperse the log-return actually is.
+      says nothing about how dispersed the log-return actually is.
     </p>
 
     <p>
@@ -392,7 +392,7 @@
     <p>
       If we run the fit twice, changing only the pricing routine and holding
       everything else fixed, then both paths converge to the same parameters
-      agreeing to three decimal places (of course), what changes is the
+      agreeing to three decimal places (of course); what changes is the
       computational cost:
     </p>
 
@@ -487,6 +487,10 @@
         available at
         <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=282110">SSRN</a>.
       </li>
+      <li id="ref6">
+        Gander, W. and Gautschi, W. (2000), "Adaptive Quadrature &mdash;
+        Revisited," <i>BIT Numerical Mathematics</i>, 40(1), 84&ndash;101.
+      </li>
       <li id="ref7">
         Hernandez, A. (2016), "Model Calibration with Neural Networks,"
         <i>Risk</i>, available at
@@ -496,10 +500,6 @@
         Liu, S., Oosterlee, C. W. and Bohte, S. M. (2019), "Pricing Options and
         Computing Implied Volatilities using Neural Networks," <i>Risks</i>,
         7(1), 16.
-      </li>
-      <li id="ref6">
-        Gander, W. and Gautschi, W. (2000), "Adaptive Quadrature &mdash;
-        Revisited," <i>BIT Numerical Mathematics</i>, 40(1), 84&ndash;101.
       </li>
     </ol>
 

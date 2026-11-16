@@ -113,7 +113,7 @@
 
     <p>
       First, note that the probability of ending up at either colour is 
-      the same by symmetry (assuming we already know that $\mathbb E(T)$ is finite 
+      the same by symmetry (assuming we already know that $T$ is finite 
       almost surely), and thus equal to $N^{-1}$. Moreover, 
       $$ 
       \mathbb E(T) = N^{-1}\sum_{c\in [N]} E(T \mid \text {$c$ wins}) = 
@@ -129,7 +129,7 @@
         \mathbb E(T \mid \text {$c$ wins and $X^c(0) = 1$} ) =  \widetilde{\mathbb E}(T \mid X^c(0) = 1) 
       $$
 
-      where $\mathbb E$ is computed under the new measure.
+      where $\widetilde{\mathbb E}$ is computed under the new measure.
     </p>
 
     <h3>The Doob transform</h3>
@@ -184,11 +184,11 @@
       Applying it to our case, we first need to compute 
       $h(n)$, the probability of ending up at our favourite colour $c_0$
       only, provided we start with $n < N$ balls of colour $c_0$. 
-      Obviously $h(0)=0$ and $h(N)=1$, and because of chain is symmetric,
+      Obviously $h(0)=0$ and $h(N)=1$, and because the chain is symmetric,
       we see that the condition that $h$ be harmonic is
 
       $$h(n) = \frac 12 h(n+1) + \frac 12  h(n-1),$$
-      so that $h(n) = \frac nN$. Reweighing the chain using this 
+      so that $h(n) = \frac nN$. Reweighting the chain using this 
       $h$ leads us to the transition probabilities 
 
       $$ 
@@ -209,8 +209,8 @@
       <div class="caption" style="text-align:left">
         <b>Figure 2.</b> Twenty sample paths of the conditioned process, that
         is, of the Doob transform of the chain by the hitting probability
-        $h(n) = n/N$. The dynamics look identical step by step, but every
-        path now ends in blue consensus. (The paths are sampled by rejection,
+        $h(n) = n/N$. Each step still repaints one ball, but the chain
+        now drifts towards blue, and every path ends in blue consensus. (The paths are sampled by rejection,
         which produces exactly the conditioned law.)
       </div>
     </div>
@@ -233,7 +233,7 @@
              $$ 
         q^{\uparrow}(n) = \frac{1}{2} + \frac 1 {2n},\qquad
         q^{\downarrow}(n) = \frac{1}{2} - \frac 1 {2n},\qquad
-        w(n) = 2n\frac{N-n}{N(N-1)}.
+        w(n) = \frac{N(N-1)}{2n(N-n)}.
       $$
       Of course, we are after $e(1)$. 
     </p>
