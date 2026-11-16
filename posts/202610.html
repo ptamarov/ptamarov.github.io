@@ -38,25 +38,21 @@
       solved using <em>Euler stepping</em>. The idea is quite simple: 
       over a small interval $[t,t+\Delta t]$, we have that 
 
-      $$y(t+\Delta t) = y(t) + \int_{t}^{t+\Delta t} f(t, s)ds$$ 
+      $$y(t+\Delta t) = y(t) + \int_{t}^{t+\Delta t} f(s, y(s))ds$$ 
 
-      and approximating the integral using some quadrature method, 
-      such as the <em>midpoint approximation</em>
+      and approximating the integral by its left end-point,
+      $$\int_t^{t+\Delta t} f(s,y(s))\,ds \approx \Delta t\, f(t,y(t)),$$
+      gives us a way to compute $y$ recursively on a grid. This is the
+      Euler scheme; better quadratures, such as the midpoint rule, give
+      higher-order schemes. 
 
-      $$\frac{1}{ \Delta t } \int_{t}^{t+\Delta t} f(t, y(s))ds
-        \approx f\left(t, y\left(t+\frac{\Delta t}2\right)\right)$$
-
-      gives us a way to recursively compute $y$ on a set of grid 
-      points. A simpler approach would take the left or right end-points, 
-      to avoid having to deal with half-steps. 
-
-      Since $y' = f(t,y)$, a simpler Taylor expansion tells us that 
-      a single step of the scheme incurrs an error proportional to 
+      Since $y' = f(t,y)$, a simple Taylor expansion tells us that 
+      a single step of the scheme incurs an error proportional to 
       $(\Delta t)^2$, and a little bit of work then translates this into 
       a <em>global</em> error of order $\Delta t$. As an example, we 
       can compute $e$ to some decimal places using this method; in my 
       naive Python implementation I got that $\left|y(1) - \hat y(1)\right|$ was 
-      proportional to about $4.077\Delta t$. 
+      proportional to about $1.359\Delta t$. 
     </p>
 
 
@@ -86,7 +82,7 @@
       href="#ref3">[3]</a>, however, shows 
       that one can expand this error in powers of $h$ to obtain 
       $$ \mathsf{Err}(t_*, h)  = C_1 h + C_2 h^2 + \cdots$$
-      where the constants depend only on $t_*$ and the process $y$. 
+      where the constants depend only on $t_*$, the process $y$ and $\varphi$. 
       The proof is somewhat technical, but at the end it shows that 
       for the Euler scheme, there exists a function $\psi(t, y)$ such 
       that 
@@ -107,14 +103,15 @@
       to estimation of the value of $\pi$ in the 17th century. The idea is 
       simple: if we know that some value $\alpha^*$ is the limit of 
       $\alpha(h)$ as $h\to 0$, and we also know that 
-      $\alpha(h) = C_1 h + C_2 h^2 + \cdots$, then 
+      $\alpha(h) = \alpha^* + C_1 h + C_2 h^2 + \cdots$, then 
 
       $$\alpha_R(h) = 2\alpha(h)-\alpha(2h)$$ 
       also converges to $\alpha^*$, and the convergence is 
       at a quadratic, instead of a linear, rate. If computing 
       $\alpha(h)$ costs us a unit of work, then the improvement of 
-      the approximation quality at the same $h$ is simply two units of 
-      work. In the language of Monte--Carlo estimation: using say a 
+      the approximation quality at the same $h$ costs one and a half
+      units of work, since the coarse run $\alpha(2h)$ costs only half a
+      unit. In the language of Monte--Carlo estimation: using say a 
       weekly simulation step of about $h= 0.02$ years, we can 
       obtain a bias in time comparable to $0.0004$ years, which is 
       about a tenth of a day, at the cost of just two Monte--Carlo 
@@ -134,10 +131,9 @@
           difference $\mu^* = 2\mu_1 -\mu_0$. 
         </li>
       </ol>
-      The time bias in $\mu^*$ will now be an order in magnitude smaller,
-      although, as it must be, the variance will have slightly increased.
-      Indeed, it will be about $\sqrt{4+1} \approx 2.23$ times higher than that
-      of $\mu_0$, with the proviso that the runs are independent. If instead the
+      The time bias in $\mu^*$ will now be an order of magnitude smaller,
+      although the standard error increases, by a factor of about
+      $\sqrt{4+1} \approx 2.24$ when the runs are independent. If instead the
       coarse run reuses the Brownian increments of the fine one, summed in
       pairs, the two estimates are strongly correlated and the variance hardly
       increases at all; Pag&egrave;s <a href="#ref4">[4]</a>
@@ -201,7 +197,7 @@
       With 200,000 paths, a smaller budget, the Euler estimates at 14 and 7 days
       are off by 23 and 12 standard errors, while the weekly Richardson estimate
       sits at $10.436 \pm 0.007$, about one standard error from the 8M path
-      reference. It is fair to remark, that below four days, the Euler bias is
+      reference. It is fair to remark that below four days, the Euler bias is
       comparable to the noise, and the two schemes can no longer be told apart.
       As the two runs share their Brownian paths, the Richardson standard errors
       are those of Euler, not $2.23$ times larger: $21$ against $21$, and $67$
@@ -261,7 +257,7 @@
     <p>
       Richardson costs about twice a plain run at the same step with coupled
       runs, as the coarse run draws the random numbers of the fine one, and
-      $1.7$ times with independent runs; a daily Euler
+      about $1.6$ times with independent runs; a daily Euler
       run costs about five times what a weekly run costs. The conclusion: the
       weekly Richardson estimate is <em>more than twice as cheap as the daily
       Euler estimate, and at least as close to the reference.</em> Plotted
@@ -288,8 +284,9 @@
       into a better output can be taken further. Multi-level Monte Carlo
       simulation, introduced by Giles <a href="#ref9">[9]</a>, uses a whole
       sequence of them, with many cheap paths on the coarse grids and few
-      expensive ones on the fine grids, and is a natural generalisation of the
-      Richardson rule. To see this for concrete derivatives, Belomestny,
+      expensive ones on the fine grids, and generalises the coupling of coarse and fine
+      runs used above, although it reduces variance rather than bias;
+      multilevel Richardson–Romberg extrapolation combines the two. To see this for concrete derivatives, Belomestny,
       Dickmann and Nagapetyan <a href="#ref10">[10]</a> use multilevel
       approximation to price American and Bermudan options.
     </p>
