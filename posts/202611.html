@@ -64,8 +64,8 @@
       path gives the sensitivities of each of them to all model inputs,
       including the parameters of the volatility process. We will see that the
       two products turn out to have quite different risk profiles, and we will
-      use the AAD risks to check how well a Taylor expansion in the Greeks
-      explains their one-day PnL.
+      use the AAD risks and the pricing equation to see what each product's
+      theta pays for.
     </p>
 
     <p>
@@ -247,7 +247,7 @@
       u_0)\,\delta t$, would also enter at first order in time, but it is zero
       at our starting point $u_0 = L = 0$. The accrual term is first order in
       $A$, because $\delta A$, a squared return, is already of second order in
-      $\delta S$, as we computed above. In the scenarios below we must use the
+      $\delta S$, as we computed above. When explaining a realised one-day PnL, one must use the
       exact $\delta A$, since that is how much the input $A$ actually moves. The
       last term vanishes for the plain call, which of course does not depend on
       $A$ at all. Carr and Lee <a href="#ref4">[4]</a> survey the pricing and
@@ -379,11 +379,11 @@
     </table>
 
     <p>
-      The terms add up to the full theta within $1\%$ and $2\%$, so the model
-      can explain its PnL very well for both products. This should not come as a
-      surprise, as we are explaining the PnL using &ldquo;raw&rdquo; model
+      The terms add up to the full theta within $1\%$ and $2\%$, so the pricing
+      equation accounts for the theta of both products very well. This should not come as a
+      surprise, as we are explaining the theta using &ldquo;raw&rdquo; model
       parameters, but the real test comes with explaining the PnL with 
-      instruments we can hedge withs; more on this in some later post. For the plain calls, the
+      instruments we can hedge with; more on this in some later post. For the plain calls, the
       gap is within one standard error of the Monte Carlo. For the
       realised-volatility call, the gap comes from grid bias: once we 
       get to 200 steps, the difference falls to $0.2\%$. 
