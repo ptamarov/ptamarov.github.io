@@ -119,8 +119,15 @@ figcaption {
    <figure class="main"><figcaption>…</figcaption><img …></figure> */
 figure.main {
   float: none;
+  clear: none;   /* do not wait for the margin to empty */
   width: auto;
   margin: 1.5em 0;
+}
+
+/* image width in the text column, set per figure:
+   <figure class="main" style="--img-width: 75%"> (or a px value) */
+figure.main img {
+  width: var(--img-width, 100%);
 }
 figure.main figcaption {
   float: right;
