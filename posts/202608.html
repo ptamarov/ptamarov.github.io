@@ -222,6 +222,13 @@
       and what number of terms do we use in the Fourier series? 
     </p>
 
+   <figure>
+      <img src="images/202608_heston_spx_smiles.svg" alt="Six panels, one per expiry, showing SPX market implied volatilities with bid-ask bars against a single calibrated Heston smile">
+      <figcaption>SPX on 2026-09-03: one Heston fit to 128 quotes across six
+        expiries, with $\omega = 0.94$, $\kappa = 1.68$, $\theta = 0.056$,
+        $\rho = -0.68$ and $v_0 = 0.025$. All panels share the same
+        volatility axis.</figcaption>
+    </figure>
     <p>
       Take a finite interval $[a,b]$ on which $p$ is concentrated. On that
       interval $p$ has a Fourier-cosine expansion,
@@ -252,6 +259,7 @@
       the cosine coefficients of $p$ are read directly off $\varphi$ at the
       equally spaced frequencies $n\pi/(b-a)$.
     </p>
+
 
     <p>
       Now put a European payoff against the density. Writing $V_n$ for the
@@ -374,10 +382,7 @@
       results are in the figure below:
     </p>
 
-    <figure>
-      <img src="images/202608_heston_spx_smiles.svg" alt="Six panels, one per expiry, showing SPX market implied volatilities with bid-ask bars against a single calibrated Heston smile">
-    </figure>
-
+  
     <p>
       The circles are the market mid with the bid&ndash;ask as an error bar, and
       the red line is the smile afforded by the Heston model. The worst slice is
