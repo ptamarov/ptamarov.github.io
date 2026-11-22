@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -161,6 +161,11 @@
           computations that will, sample by sample, produce the final estimate
           of $\varphi(\theta) = \mathbb E( f(X(\theta)))$. 
         </p> 
+       <figure>
+      <img src="./images/dagbs.png" alt="">
+      <figcaption><b>Figure 1.</b>  The directed acyclic calculation graph 
+                 for the Black--Scholes formula.</figcaption>
+    </figure>
 
       <h3>2. Enter adjoints</h3>
         <p>
@@ -235,17 +240,7 @@
         where $z_\pm = \frac{z}{v} \pm \frac v2$ and $z = \log\frac FK$ 
         and $v=\sqrt{T}\sigma$, where $\sigma$ is the constant lognormal volatility.
     </p>
-        <div style="text-align: center">
-        <img
-            src='./images/dagbs.png'
-            width="250vw"/>
-               <br>
-               <div class="caption">
-                 <b>Figure 1.</b>  The directed acyclic calculation graph 
-                 for the Black--Scholes formula.
-                </div>
-       </div>
-
+ 
        <p>
        Following the previous discussion, let us consider the following 
        order (and its reverse) for the nodes in the figure: left to right, 
@@ -514,6 +509,27 @@ backpropagation cycle is a crucial step.
             <span class="st">f"cannot compute max(number, other) for type(other)={<span class="bi">type</span>(other)}"</span>
         )</pre>
 </div>
+ <figure>
+      <img src="./images/pv.svg" alt="">
+      <figcaption><b>Figure 2.</b>  The price of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.</figcaption>
+    </figure>
+        <figure>
+      <img src="./images/vega.svg" alt="">
+      <figcaption><b>Figure 3.</b>  The vega of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.</figcaption>
+    </figure>
+        <figure>
+      <img src="./images/delta.svg" alt="">
+      <figcaption><b>Figure 4.</b>  The delta of a call in the Black--Scholes 
+                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
+                 computed with the analytic formula and a Monte Carlo simulation 
+                 with AAD.</figcaption>
+    </figure>
   <p> Finally, simple helpers for computations with normal distributions:</p>
 <div class="block">
   <pre><span class="kw">def</span> <span class="fn">normal_cdf</span>(v: <span class="bi">float</span>) <span class="op">-></span> <span class="bi">float</span>:
@@ -578,47 +594,12 @@ backpropagation cycle is a crucial step.
     <span class="kw">return</span> pv, delta, vega</pre>
 </div>
 
-<p>The graphs below confirm the correctness of the implementation: the 
+<p>The figures confirm the correctness of the implementation: the 
   analytic and the simulated values and Greeks coincide (within a small 
-  Monte Carlo standard error): 
+  Monte Carlo standard error).
 </p>
 
-        <div style="text-align: center">
-        <img
-            src='./images/pv.svg'
-            width="650vw"/>
-               <br>
-               <div class="caption">
-                 <b>Figure 2.</b>  The price of a call in the Black--Scholes 
-                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
-                 computed with the analytic formula and a Monte Carlo simulation 
-                 with AAD.
-                </div>
-       </div>
-        <div style="text-align: center">
-        <img
-            src='./images/vega.svg'
-            width="650vw"/>
-               <br>
-               <div class="caption">
-                 <b>Figure 3.</b>  The vega of a call in the Black--Scholes 
-                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
-                 computed with the analytic formula and a Monte Carlo simulation 
-                 with AAD.
-                </div>
-       </div>
-        <div style="text-align: center">
-        <img
-            src='./images/delta.svg'
-            width="650vw"/>
-               <br>
-               <div class="caption">
-                 <b>Figure 4.</b>  The delta of a call in the Black--Scholes 
-                 model with $\sigma = 40\%$, $r=2\%$, $T=1.00$ and $K=100.00$, 
-                 computed with the analytic formula and a Monte Carlo simulation 
-                 with AAD.
-                </div>
-       </div>
+       
 
   
 <h3>References</h3>

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -79,8 +79,8 @@
     <p>
       Let us consider the following problem, which is closely related to
       the  <a href=https://en.wikipedia.org/wiki/Moran_process>Moran process</a>
-      <a href="#ref5">[5]</a>, or equivalently the voter model on the complete
-      graph <a href="#ref1">[1,</a> <a href="#ref4">4]</a>.
+      <a href="#ref5">[5]</a><span class="marginnote">5. Moran, P. A. P. (1958), "Random Processes in Genetics," <i>Mathematical Proceedings of the Cambridge Philosophical Society</i>, 54(1), 60–71.</span>, or equivalently the voter model on the complete
+      graph <a href="#ref1">[1,</a> <a href="#ref4">4]</a><span class="marginnote">1. Cox, J. T. (1989), "Coalescing Random Walks and Voter Model Consensus Times on the Torus in $\mathbb Z^d$," <i>The Annals of Probability</i>, 17(4), 1333–1366.<br>4. Liggett, T. M. (1985), <i>Interacting Particle Systems</i>, Springer, New York.</span>.
       Consider a box with $N$ balls, each painted with a different colour.
       Then, pick two balls without replacement, and paint the first one the
       same colour as the second one. What is the expected number of steps until
@@ -89,20 +89,14 @@
       to prove this?
     </p>
 
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202606_unbiased.gif"
-           alt="Animation of the unbiased process for N=6 balls: at each step a
-                ball is repainted the colour of another, until all balls share
-                one colour"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 1.</b> Twenty sample paths of the unbiased process for
+    <figure>
+      <img src="images/202606_unbiased.gif" alt="Animation of the unbiased process for N=6 balls: at each step a ball is repainted the colour of another, until all balls share one colour">
+      <figcaption><b>Figure 1.</b> Twenty sample paths of the unbiased process for
         $N=6$: at each step an ordered pair of balls is drawn without
         replacement and the first is painted the colour of the second (the
         arrow points from the donor to the repainted ball), until consensus.
-        Every colour is equally likely to take over.
-      </div>
-    </div>
+        Every colour is equally likely to take over.</figcaption>
+    </figure>
 
     <p> 
      Begin by letting $X^c(t)$ denote the number of balls of colour $c\in [N]$ 
@@ -139,9 +133,9 @@
     <h3>The Doob transform</h3>
 
     <p>
-      The Doob $h$-transform <a href="#ref2">[2]</a> is a recipe for turning a
+      The Doob $h$-transform <a href="#ref2">[2]</a><span class="marginnote">2. Doob, J. L. (1957), "Conditional Brownian Motion and the Boundary Limits of Harmonic Functions," <i>Bulletin de la Société Mathématique de France</i>, 85, 431–458.</span> is a recipe for turning a
       Markov chain into the chain obtained by conditioning it to do something;
-      for textbook treatments see <a href="#ref3">[3,</a> <a href="#ref6">6]</a>.
+      for textbook treatments see <a href="#ref3">[3,</a> <a href="#ref6">6]</a><span class="marginnote">3. Levin, D. A. and Peres, Y. (2017), <i>Markov Chains and Mixing Times</i>, 2nd ed., American Mathematical Society, Providence.<br>6. Norris, J. R. (1997), <i>Markov Chains</i>, Cambridge University Press, Cambridge.</span>.
       Let $X(t)$
       be a Markov chain on some state space $S$ with
       transition matrix $P$, so that 
@@ -205,19 +199,14 @@
 
     </p>
 
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202606_biased.gif"
-           alt="Animation of the process conditioned on blue winning: twenty
-                sample paths that all end with every ball painted blue"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 2.</b> Twenty sample paths of the conditioned process, that
+    <figure>
+      <img src="images/202606_biased.gif" alt="Animation of the process conditioned on blue winning: twenty sample paths that all end with every ball painted blue">
+      <figcaption><b>Figure 2.</b> Twenty sample paths of the conditioned process, that
         is, of the Doob transform of the chain by the hitting probability
         $h(n) = n/N$. Each step still repaints one ball, but the chain
         now drifts towards blue, and every path ends in blue consensus. (The paths are sampled by rejection,
-        which produces exactly the conditioned law.)
-      </div>
-    </div>
+        which produces exactly the conditioned law.)</figcaption>
+    </figure>
 
     <p>
       Using this new chain, let $e(n) = \widetilde{\mathbb E}(T \mid X^c(0) = n)$ 

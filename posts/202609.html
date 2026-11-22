@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -68,16 +68,16 @@
       that function by running the optimiser every time: if we can approximate
       it directly, we can replace an iterative procedure by a single evaluation.
       This is the observation behind Hernandez
-      <a href="#ref4">[4]</a> and the line of work that followed it.
+      <a href="#ref4">[4]</a><span class="marginnote">4. Hernandez, A. (2016), "Model Calibration with Neural Networks," <i>Risk</i>, available at <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2812140">SSRN</a>.</span> and the line of work that followed it.
     </p>
 
     <p>
       There are two natural sets of data one can learn from and the resulting
       network (or map) we build. One is the pricing or forward map, that takes
       model parameters to prices (or implied volatilities), and this is what
-      Liu, Oosterlee and Bohte <a href="#ref5">[5]</a> do. The other is the
+      Liu, Oosterlee and Bohte <a href="#ref5">[5]</a><span class="marginnote">5. Liu, S., Oosterlee, C. W. and Bohte, S. M. (2019), "Pricing Options and Computing Implied Volatilities using Neural Networks," <i>Risks</i>, 7(1), 16.</span> do. The other is the
       calibration or inverse map, from the surfaces back to the parameters,
-      which is what Horvath, Muguruza and Tomas <a href="#ref6">[6]</a> discuss
+      which is what Horvath, Muguruza and Tomas <a href="#ref6">[6]</a><span class="marginnote">6. Horvath, B., Muguruza, A. and Tomas, M. (2021), "Deep learning volatility: a deep neural network perspective on pricing and calibration in (rough) volatility models," <i>Quantitative Finance</i>, 21(1), 11&ndash;27.</span> discuss
       under the name of a "two-step approach". 
     </p>
       
@@ -97,7 +97,7 @@
     <h3>The Bergomi one factor model </h3>
 
     <p>
-      The Bergomi model <a href="#ref1">[1]</a>, <a href="#ref2">[2]</a> is
+      The Bergomi model <a href="#ref1">[1]</a>, <a href="#ref2">[2]</a><span class="marginnote">1. Bergomi, L. (2005), "Smile Dynamics II," <i>Risk Magazine</i>, October 2005, 67&ndash;73.<br>2. Bergomi, L. (2016), <i>Stochastic Volatility Modeling</i>, Chapman and Hall/CRC, Boca Raton.</span> is
       built on the forward variance curve rather than on the instantaneous
       variance, mimicking the usual practitioner approach for short rate models
       in the spirit of Heath--Jarrow--Morton. In the one-factor case one takes a
@@ -148,7 +148,7 @@
       function solves a "fractional" version of the Riccati ODEs and can be
       approximated, so one can go back to Fourier methods, but that's another
       story; some details can be found in
-      <a href="#ref8">[8]</a>.
+      <a href="#ref8">[8]</a><span class="marginnote">8. Baschetti, F., Bormetti G. and Romagnoli S. (2022), "The SINC way: A fast and accurate approach to Fourier pricing," <i>Quantitative Finance</i>, 22(3), 427&ndash;446.</span>.
     </p>
 
     <p>
@@ -185,14 +185,9 @@
       past the noise floor that would be impossible to break through otherwise.
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202609_forward_accuracy.svg"
-           alt="Error of the learned forward map against the number of training
-                surfaces, on logarithmic axes, shown both as measured against
-                noisy labels and after removing the label noise, with the noise
-                floor marked"
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202609_forward_accuracy.svg" alt="Error of the learned forward map against the number of training surfaces, on logarithmic axes, shown both as measured against noisy labels and after removing the label noise, with the noise floor marked">
+    </figure>
 
     <p>
       The corrected curve falls like $n^{-\frac 3{10}}$, and at a million
@@ -466,13 +461,9 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
       
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202609_intraday.svg"
-           alt="Three panels over two turbulent trading sessions: the fit
-                residual, the spot-variance correlation and the vol-of-vol, each
-                refitted every five to fifteen minutes"
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202609_intraday.svg" alt="Three panels over two turbulent trading sessions: the fit residual, the spot-variance correlation and the vol-of-vol, each refitted every five to fifteen minutes">
+    </figure>
 
     <p>
       On the selloff itself the fitter barely flinched: fifty independent
@@ -528,15 +519,9 @@ fetch("data/202609_smiles.json").then(function (r) { return r.json(); }).then(fu
       to calibrate and judge the output?
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202609_verify.svg"
-           alt="Left: the residual the surrogate reports against the residual the
-                Monte Carlo engine finds for the same parameters, every point
-                above the diagonal. Centre: a histogram of the difference,
-                concentrated between six and nine basis points and entirely
-                positive. Right: the worst single disagreement, per maturity."
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202609_verify.svg" alt="Top: the residual the surrogate reports against the residual the Monte Carlo engine finds for the same parameters, every point above the diagonal. Middle: a histogram of the difference, concentrated between six and nine basis points and entirely positive. Bottom: the worst single disagreement, per maturity.">
+    </figure>
 
     <p>
       As usual, let me call <em>residual</em> the measure of how

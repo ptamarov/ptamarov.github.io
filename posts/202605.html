@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -84,7 +84,7 @@
       estimating $\mathbb{E}(\sigma(T)^2 \mid Q(T) = K)$ from Monte Carlo paths.
       In this post, we compare three estimators for this conditional expectation
       in the two-factor Bergomi stochastic volatility model
-      <a href="#ref1">[1,</a> <a href="#ref2">2]</a>: an OLS polynomial
+      <a href="#ref1">[1,</a> <a href="#ref2">2]</a><span class="marginnote">1. Bergomi, L. (2005), “Smile Dynamics II,” <i>Risk</i>, October, 67–73.<br>2. Bergomi, L. (2016), <i>Stochastic Volatility Modeling</i>, CRC Press, Boca Raton.</span>: an OLS polynomial
       regression, a Gaussian kernel estimator, and a quantile-bin non-parametric
       estimator (NPE) with linear interpolation.
       
@@ -124,7 +124,7 @@
     we must have for all $(t,K)$ that 
 
     $$\mathbb E(\sigma(t)^2 \mid Q(t) = K) = \sigma_0(t,K)^2.$$
-    This is the Dupire--Gyöngy condition <a href="#ref3">[3,</a> <a href="#ref4">4]</a>.
+    This is the Dupire--Gyöngy condition <a href="#ref3">[3,</a> <a href="#ref4">4]</a><span class="marginnote">3. Dupire, B. (1994), “Pricing with a Smile,” <i>Risk</i>, 7(1), 18–20.<br>4. Gyöngy, I. (1986), "Mimicking the One-Dimensional Marginal Distributions of Processes Having an Ito Differential," <i>Probability Theory and Related Fields</i>, 71, 501–516.</span>.
 
     Since we can compute the right hand side from market quotes, we can attempt
     to calibrate the Bergomi model to try and hit the market as best as
@@ -159,12 +159,12 @@
     more complex curvature profiles, and can introduce bias in the estimation. 
     However, other bases can be considered that may be more appropriate given
     the observed shape of the local volatility produced by the model
-    <a href="#ref5">[5]</a>.
+    <a href="#ref5">[5]</a><span class="marginnote">5. Longstaff, F. A. and Schwartz, E. S. (2001), "Valuing American Options by Simulation: A Simple Least-Squares Approach," <i>The Review of Financial Studies</i>, 14(1), 113–147.</span>.
     </p>
 
     <h3>3. Kernel estimators</h3>
 
-    The Nadaraya--Watson estimator <a href="#ref6">[6,</a> <a href="#ref10">10]</a>
+    The Nadaraya--Watson estimator <a href="#ref6">[6,</a> <a href="#ref10">10]</a><span class="marginnote">6. Nadaraya, E. A. (1964), "On Estimating Regression," <i>Theory of Probability and Its Applications</i>, 9(1), 141–142.<br>10. Watson, G. S. (1964), "Smooth Regression Analysis," <i>Sankhyā: The Indian Journal of Statistics, Series A</i>, 26(4), 359–372.</span>
     replaces a global polynomial with a weighted local average, so that the
     final value of $\hat g$ is an aggregate of "smoothed deltas" at each sampled
     point $s_i$. At each query point $s$, we then define
@@ -182,11 +182,11 @@
     bandwidths will produce a rougher profile and may overfit, while large
     bandwidths may introduce bias. Thus, a good bandwidth choice will balance
     these two sources of error and minimise the mean squared error of the estimate
-    <a href="#ref9">[9]</a>.
+    <a href="#ref9">[9]</a><span class="marginnote">9. Wand, M. P. (1994), "Fast Computation of Multivariate Kernel Estimators," <i>Journal of Computational and Graphical Statistics</i>, 3(4), 433–445.</span>.
 
     <p>
     <b>Silverman's rule.</b> One option is to go by Silverman's rule
-    <a href="#ref8">[8]</a>, which proposes a bandwidth of
+    <a href="#ref8">[8]</a><span class="marginnote">8. Silverman, B. W. (1986), <i>Density Estimation for Statistics and Data Analysis</i>, Chapman &amp; Hall/CRC, London.</span>, which proposes a bandwidth of
     $h = 1.06\,\hat\sigma\, N^{-1/5}$ where $\hat\sigma$ is the sample standard
     deviation of $\log Q(T)$. The rule minimises the asymptotic mean integrated
     squared error when the density of $\log Q(T)$ is Gaussian, and is a
@@ -207,7 +207,7 @@
     Unlike the kernel estimator, this makes no smoothness assumption on $g$
     and requires no bandwidth selection, although it does require us to choose
     how many bins we will use in the process; for the bin count one may follow Scott's
-    $N^{1/3}$ rule <a href="#ref7">[7]</a>. Its main limitation is the
+    $N^{1/3}$ rule <a href="#ref7">[7]</a><span class="marginnote">7. Scott, D. W. (1979), "On Optimal and Data-Based Histograms," <i>Biometrika</i>, 66(3), 605–610.</span>. Its main limitation is the
     piecewise-linear form of the interpolant, which can appear rough when the
     within-bin variance of $v$ is large, such as high vol-of-vol regimes.
     </p>
@@ -225,72 +225,46 @@
     $\kappa_1=5$, $\kappa_2=0.5$, $\theta=0.5$, $\rho_{12}=0$.  The dashed line
     marks the flat-variance reference $\sigma_0 = \sqrt{\xi_0}$ for each panel.
 
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_smile_omega.svg"
-           alt="Effect of vol-of-vol omega on the Bergomi local-vol smile"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 1.</b> Larger $\omega$ increases the convexity of the smile.
+    <figure class="main carousel">
+      <figcaption>
+        <span class="slide-cap"><b>Figure 1.</b> Larger $\omega$ increases the convexity of the smile.
         Thus $\omega$ acts as a smile parameter in the Bergomi model, controlling
-        the size of the tails (kurtosis) of the log-spot distribution.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_smile_rho.svg"
-           alt="Effect of spot-vol correlation rho on the Bergomi local-vol smile"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 2.</b> The spot-vol correlation $\rho$ controls the slope of
+        the size of the tails (kurtosis) of the log-spot distribution.</span>
+        <span class="slide-cap"><b>Figure 2.</b> The spot-vol correlation $\rho$ controls the slope of
         the local-vol smile: negative $\rho$ produces negative slope, positive
         $\rho$ reverses it. In other words, $\rho$ controls the skew of the
-        log-spot distribution.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_smile_xi0.svg"
-           alt="Effect of initial variance xi0 on the Bergomi local-vol smile"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 3.</b> Changing $\xi_0$ shifts the entire smile up or down,
-        impacting mostly the level of the local volatility. 
-      </div>
-    </div>
+        log-spot distribution.</span>
+        <span class="slide-cap"><b>Figure 3.</b> Changing $\xi_0$ shifts the entire smile up or down,
+        impacting mostly the level of the local volatility.</span>
+      </figcaption>
+      <div class="carousel-tabs"><button type="button">ω</button><button type="button">ρ</button><button type="button">ξ₀</button></div>
+      <img class="slide" src="images/202605_lv_smile_omega.svg" alt="Effect of vol-of-vol omega on the Bergomi local-vol smile">
+      <img class="slide" src="images/202605_lv_smile_rho.svg" alt="Effect of spot-vol correlation rho on the Bergomi local-vol smile">
+      <img class="slide" src="images/202605_lv_smile_xi0.svg" alt="Effect of initial variance xi0 on the Bergomi local-vol smile">
+    </figure>
 
     <h3>6. Comparison of estimators</h3>
 
     The figures below overlay all three estimators, one 2×2 grid per swept
     parameter. We have used $N=1 000 000$ paths for every panel.
 
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_compare_omega.svg"
-           alt="Estimator comparison: vol-of-vol omega sweep"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 4.</b> Kernel (blue), NPE (amber) and OLS (green) estimates of the
+    <figure class="main carousel">
+      <figcaption>
+        <span class="slide-cap"><b>Figure 4.</b> Kernel (blue), NPE (amber) and OLS (green) estimates of the
         local-vol smile as $\omega$ varies. All estimators are approximately equal, 
         with the kernel and NPE exhibiting some Monte Carlo noise. Note also that the 
         OLS estimator introduces some bias (calibration mismatch) when $\omega$ is 
-        too large.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_compare_rho.svg"
-           alt="Estimator comparison: spot-vol correlation rho sweep"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 5.</b> Same comparison for varying spot-vol correlation $\rho$. 
-        As before, estimators are approximately equal, with the kernel and NPE exhibiting some Monte Carlo noise.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_compare_k1.svg"
-           alt="Estimator comparison: mean-reversion speed kappa1 sweep"
-           style="max-width:100%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 6.</b> Same comparison for varying mean-reversion speed $\kappa_1$.
-        The impact on local volatility is small compared to the other parameters.
-      </div>
-    </div>
+        too large.</span>
+        <span class="slide-cap"><b>Figure 5.</b> Same comparison for varying spot-vol correlation $\rho$. 
+        As before, estimators are approximately equal, with the kernel and NPE exhibiting some Monte Carlo noise.</span>
+        <span class="slide-cap"><b>Figure 6.</b> Same comparison for varying mean-reversion speed $\kappa_1$.
+        The impact on local volatility is small compared to the other parameters.</span>
+      </figcaption>
+      <div class="carousel-tabs"><button type="button">ω</button><button type="button">ρ</button><button type="button">κ₁</button></div>
+      <img class="slide" src="images/202605_lv_compare_omega.svg" alt="Estimator comparison: vol-of-vol omega sweep">
+      <img class="slide" src="images/202605_lv_compare_rho.svg" alt="Estimator comparison: spot-vol correlation rho sweep">
+      <img class="slide" src="images/202605_lv_compare_k1.svg" alt="Estimator comparison: mean-reversion speed kappa1 sweep">
+    </figure>
 
     <p>
     The three methods agree reasonably well at moderate parameters, though the
@@ -310,37 +284,24 @@
     independent Monte Carlo draw; the dashed line marks the flat-volatility
     reference of  $\sigma_0 = 20\%$.
 
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_convergence_kernel.svg"
-           alt="Convergence of kernel estimator with sample size"
-           style="width:75%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 7.</b> Kernel estimator curves for $N$ from 5k (lightest) to
+    <figure class="main carousel">
+      <figcaption>
+        <span class="slide-cap"><b>Figure 7.</b> Kernel estimator curves for $N$ from 5k (lightest) to
         1M (purple). The kernel estimator gives a very good estimate of the
-        local-volatility smile.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_convergence_npe.svg"
-           alt="Convergence of NPE estimator with sample size"
-           style="width:75%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 8.</b> NPE estimator curves for $N$ from 5000 (gray) to 1
+        local-volatility smile.</span>
+        <span class="slide-cap"><b>Figure 8.</b> NPE estimator curves for $N$ from 5000 (gray) to 1
         million (purple). The NPE estimator still preserves some of the Monte
         Carlo noise but otherwise produces a good estimate that is stable at 
-        around 100000 samples.
-      </div>
-    </div>
-    <div class="aligncenter" style="margin-bottom:1cm;">
-      <img src="images/202605_lv_convergence_ols.svg"
-           alt="Convergence of OLS estimator with sample size"
-           style="width:75%; height:auto;">
-      <div class="caption" style="text-align:left">
-        <b>Figure 9.</b> OLS estimator curves for $N$ from 5000 (gray) to 1
+        around 100000 samples.</span>
+        <span class="slide-cap"><b>Figure 9.</b> OLS estimator curves for $N$ from 5000 (gray) to 1
         million (purple). Compared to the other estimators, the OLS estimator
-        stabilizes relatively quickly.
-      </div>
-    </div>
+        stabilizes relatively quickly.</span>
+      </figcaption>
+      <div class="carousel-tabs"><button type="button">Kernel</button><button type="button">NPE</button><button type="button">OLS</button></div>
+      <img class="slide" src="images/202605_lv_convergence_kernel.svg" alt="Convergence of kernel estimator with sample size">
+      <img class="slide" src="images/202605_lv_convergence_npe.svg" alt="Convergence of NPE estimator with sample size">
+      <img class="slide" src="images/202605_lv_convergence_ols.svg" alt="Convergence of OLS estimator with sample size">
+    </figure>
 
     <p>
     The kernel and OLS estimates are visually stable already around
@@ -410,5 +371,6 @@
  products, securities or assets.
  </p>
 </footer>
+<script src="../carousel.js"></script>
 </body>
 </html>

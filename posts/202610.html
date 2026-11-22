@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -140,9 +140,9 @@
       $\sqrt{4+1} \approx 2.24$ when the runs are independent. If instead the
       coarse run reuses the Brownian increments of the fine one, summed in
       pairs, the two estimates are strongly correlated and the variance hardly
-      increases at all; Pag&egrave;s <a href="#ref4">[4]</a>
+      increases at all; Pag&egrave;s <a href="#ref4">[4]</a><span class="marginnote">4. Pag&egrave;s, G. (2007), "Multi-step Richardson&ndash;Romberg extrapolation: remarks on variance control and complexity," <i>Monte Carlo Methods and Applications</i>, 13(1), 37&ndash;70, available at <a href="https://arxiv.org/abs/math/0612523">arXiv</a>.</span>
       studies this, together with extrapolation over more than two steps.
-      Chapter 6 of Glasserman <a href="#ref5">[5]</a> is a textbook account of
+      Chapter 6 of Glasserman <a href="#ref5">[5]</a><span class="marginnote">5. Glasserman, P. (2003), <i>Monte Carlo Methods in Financial Engineering</i>, Springer, Applications of Mathematics 53.</span> is a textbook account of
       the discretization error and its extrapolation in a financial setting.
     </p>
 
@@ -150,8 +150,8 @@
 
     <p>
       To test it, let us price a one-year monthly cliquet. We use a Dupire local
-      volatility model <a href="#ref6">[6]</a>, with the local volatility
-      surface obtained from an SVI fit <a href="#ref7">[7]</a> to a smile
+      volatility model <a href="#ref6">[6]</a><span class="marginnote">6. Dupire, B. (1994), "Pricing with a smile," <i>Risk</i>, 7(1), 18&ndash;20.</span>, with the local volatility
+      surface obtained from an SVI fit <a href="#ref7">[7]</a><span class="marginnote">7. Gatheral, J. and Jacquier, A. (2014), "Arbitrage-free SVI volatility surfaces," <i>Quantitative Finance</i>, 14(1), 59&ndash;71, available at <a href="https://arxiv.org/abs/1204.0646">arXiv</a>.</span> to a smile
       similar to that of SPX. We fix a flat 3% rate, with a 1% dividend yield.
       The cliquet pays the sum of the twelve monthly returns, each floored at
       zero and capped at $2\%$. This is a typical product for which one needs a
@@ -159,13 +159,13 @@
       is no closed form for its PV; in fact, it is well known that its PV is
       strongly model dependent. Its payoff has kinks at the floor and the cap,
       so it is not smooth (as the Talay&ndash;Tubaro expansion asks). However,
-      Bally and Talay <a href="#ref8">[8]</a> show that the expansion still
+      Bally and Talay <a href="#ref8">[8]</a><span class="marginnote">8. Bally, V. and Talay, D. (1996), "The law of the Euler scheme for stochastic differential equations I: convergence rate of the distribution function," <i>Probability Theory and Related Fields</i>, 104(1), 43&ndash;60.</span> show that the expansion still
       holds for measurable payoffs, provided the diffusion is
       non-degenerate.
     </p>
     <p>
      I varied the time step from 14 days down to a single day, once with two
-     million paths per point (left panel) and once with 200,000 (right panel).
+     million paths per point (top panel) and once with 200,000 (bottom panel).
      For Richardson I used both independent runs, as the textbook rule has it
      (other seeds, and the coarse mesh built on its own from the doubled step),
      and coupled runs, on the nested meshes and the same Brownian paths. As
@@ -174,16 +174,9 @@
      notional.
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202610_richardson_cliquet.svg"
-           alt="Two panels, for two million and for 200,000 paths per point:
-                cliquet PV minus the reference against the time step in days,
-                on a logarithmic axis, for the Euler scheme and for its
-                Richardson extrapolation with independent and with coupled
-                runs, with error bars of two standard errors and the
-                reference band around zero"
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202610_richardson_cliquet.svg" alt="Two panels, for two million and for 200,000 paths per point: cliquet PV minus the reference against the time step in days, on a logarithmic axis, for the Euler scheme and for its Richardson extrapolation with independent and with coupled runs, with error bars of two standard errors and the reference band around zero">
+    </figure>
 
     <p>
       With two million paths, the Euler bias is almost exactly linear in the
@@ -271,27 +264,20 @@
       error bars are less than half as wide.
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202610_richardson_cost.svg"
-           alt="Cliquet PV minus the reference against the pricing time in
-                seconds, on a logarithmic axis, at two million paths, for the
-                Euler scheme and its Richardson extrapolation with independent
-                and with coupled runs, with error bars of two standard errors;
-                the Euler and coupled points are labelled with their time
-                steps"
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202610_richardson_cost.svg" alt="Cliquet PV minus the reference against the pricing time in seconds, on a logarithmic axis, at two million paths, for the Euler scheme and its Richardson extrapolation with independent and with coupled runs, with error bars of two standard errors; the Euler and coupled points are labelled with their time steps">
+    </figure>
 
     <p>
       The idea of Richardson extrapolation that combines two grids, taking two
       ``levels'' of the simulation (one cheap, one more expensive) to merge them
       into a better output can be taken further. Multi-level Monte Carlo
-      simulation, introduced by Giles <a href="#ref9">[9]</a>, uses a whole
+      simulation, introduced by Giles <a href="#ref9">[9]</a><span class="marginnote">9. Giles, M. B. (2008), "Multilevel Monte Carlo path simulation," <i>Operations Research</i>, 56(3), 607&ndash;617.</span>, uses a whole
       sequence of them, with many cheap paths on the coarse grids and few
       expensive ones on the fine grids, and generalises the coupling of coarse and fine
       runs used above, although it reduces variance rather than bias;
       multilevel Richardson–Romberg extrapolation combines the two. To see this for concrete derivatives, Belomestny,
-      Dickmann and Nagapetyan <a href="#ref10">[10]</a> use multilevel
+      Dickmann and Nagapetyan <a href="#ref10">[10]</a><span class="marginnote">10. Belomestny, D., Dickmann, F. and Nagapetyan, T. (2015), "Pricing Bermudan options via multilevel approximation methods," <i>SIAM Journal on Financial Mathematics</i>, 6(1), 448&ndash;466, available at <a href="https://epubs.siam.org/doi/10.1137/130912426">SIAM</a>.</span> use multilevel
       approximation to price American and Bermudan options.
     </p>
 

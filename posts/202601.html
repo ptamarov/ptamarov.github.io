@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -152,7 +152,23 @@
       is defined as before, with the $v$ we just computed:
       $$ \mathsf{ZeroCall}_\tau(t,T,k') = f(t) \Phi(z_+) - k' \Phi(z_{-}).$$
   </p>
-
+<figure>
+      <img src="./images/CAPLET20250108_V1.png" alt="">
+    </figure>
+    <figure>
+      <img src="./images/CURVE20250108_V1.png" alt="">
+        <figcaption><b>Figure 1.</b> Increasing EUR curve and corresponding 
+          downward-sloping caplet quotes.</figcaption>
+    </figure>
+    
+    <figure>
+      <img src="./images/CAPLET20250108_V2.png" alt="">
+    </figure>
+    <figure>
+      <img src="./images/CURVE20250108_V2.png" alt="">
+       <figcaption><b>Figure 2.</b> USD curve and corresponding 
+          humped caplet quotes.</figcaption>
+    </figure>
       <h3>3. Caplet volatility: Black and Hull--White</h2>
       
         <p>
@@ -168,6 +184,7 @@
       where $\sigma_{\mathsf{HW}}^2 = V(t,T)B(T,T+\tau)^2$. This looks promising, in particular 
       since we can invert this quite straightforwardly. 
         </p>
+    
 
         <p>
       On the other hand, the market likes to 
@@ -223,27 +240,7 @@
     Taylor expansion not so effective! 
    </p>
 
-      <h4 class="aligncenter"> Example A: increasing EUR curve</h4>
-
-    <div style="text-align: center">
-      <img
-            src='./images/CAPLET20250108_V1.png'
-            width="500vw"/>
-      <img
-            src='./images/CURVE20250108_V1.png'
-            width="500vw"/>
-    </div>
-          <h4 class="aligncenter"> Example B: downward humped USD curve</h4>
-
-    <div style="text-align: center">
-      <img
-            src='./images/CAPLET20250108_V2.png'
-            width="500vw"/>
-      <img
-            src='./images/CURVE20250108_V2.png'
-            width="500vw"/>
-    </div>
-
+  
 
 <footer class="page-footer">
 <p>

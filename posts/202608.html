@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -36,14 +36,14 @@
     <!-- /reading-time -->
 
     <p>
-      The Heston model <a href="#ref1">[1]</a> is affine, and the practical
+      The Heston model <a href="#ref1">[1]</a><span class="marginnote">1. Heston, S. L. (1993), "A Closed-Form Solution for Options with Stochastic Volatility with Applications to Bond and Currency Options," <i>The Review of Financial Studies</i>, 6(2), 327&ndash;343.</span> is affine, and the practical
       consequence of this is that its characteristic function is known in closed
       form (even though the spot density is not). Everything one wants to compute for
       European payoffs can therefore be written as a Fourier integral, and the
       only real question is how to compute it. This post is about two answers to
       this question: adaptive quadrature applied to the inversion integral,
-      following Kahl and J&auml;ckel <a href="#ref2">[2]</a>, and the cosine
-      expansion of Fang and Oosterlee <a href="#ref4">[4]</a>. They are both
+      following Kahl and J&auml;ckel <a href="#ref2">[2]</a><span class="marginnote">2. Kahl, C. and J&auml;ckel, P. (2005), "Not-so-complex logarithms in the Heston model," <i>Wilmott Magazine</i>, September 2005, 94&ndash;103.</span>, and the cosine
+      expansion of Fang and Oosterlee <a href="#ref4">[4]</a><span class="marginnote">4. Fang, F. and Oosterlee, C. W. (2008), "A Novel Pricing Method for European Options Based on Fourier-Cosine Series Expansions," <i>SIAM Journal on Scientific Computing</i>, 31(2), 826&ndash;848.</span>. They are both
       standard, they are both good, and they exhibit weaknesses in different
       places, which is yet another interesting part of the story, in addition to
       the merits of both methods.
@@ -107,7 +107,7 @@
       leading to wrong results. This is the subject of Kahl and J&auml;ckel <a
       href="#ref2">[2]</a>, who keep track of winding numbers to stay in the
       correct branch of the logarithm, and of Lord and Kahl
-      <a href="#ref3">[3]</a>, who give an equivalent formulation that is easier
+      <a href="#ref3">[3]</a><span class="marginnote">3. Lord, R. and Kahl, C. (2010), "Complex Logarithms in Heston-Like Models," <i>Mathematical Finance</i>, 20(4), 671&ndash;694.</span>, who give an equivalent formulation that is easier
       to implement and better behaved in a calibration. Fang and Oosterlee state
       the practical rule compactly: take the square root with non-negative real
       part and the logarithm on its principal branch. In this way, the resulting
@@ -116,7 +116,7 @@
 
     <p>
       Given the characteristic function, a European price is just an integral. Using
-      the single-integral representation of Lewis <a href="#ref5">[5]</a>, a
+      the single-integral representation of Lewis <a href="#ref5">[5]</a><span class="marginnote">5. Lewis, A. L. (2001), "A Simple Option Formula for General Jump-Diffusion and Other Exponential L&eacute;vy Processes," available at <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=282110">SSRN</a>.</span>, a
       call with strike $K$ on a forward $f$ is
       
       \[
@@ -140,7 +140,7 @@
       only the branch analysis but a practical recipe: map the half-line
       $[0,\infty)$ onto $[0,1]$ by a substitution chosen so that the transformed
       integrand is well-behaved, then apply the adaptive Gauss&ndash;Lobatto
-      quadrature of Gander and Gautschi <a href="#ref6">[6]</a>. The
+      quadrature of Gander and Gautschi <a href="#ref6">[6]</a><span class="marginnote">6. Gander, W. and Gautschi, W. (2000), "Adaptive Quadrature &mdash; Revisited," <i>BIT Numerical Mathematics</i>, 40(1), 84&ndash;101.</span>. The
       substitution is
       \[
         u = -\frac{\log x}{C_\infty}, \qquad x \in (0,1],
@@ -374,13 +374,9 @@
       results are in the figure below:
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202608_heston_spx_smiles.svg"
-           alt="Six panels, one per expiry, showing SPX market implied
-                volatilities with bid-ask bars against a single calibrated
-                Heston smile"
-           style="max-width: 100%; height: auto;">
-    </div>
+    <figure>
+      <img src="images/202608_heston_spx_smiles.svg" alt="Six panels, one per expiry, showing SPX market implied volatilities with bid-ask bars against a single calibrated Heston smile">
+    </figure>
 
     <p>
       The circles are the market mid with the bid&ndash;ask as an error bar, and
@@ -452,13 +448,13 @@
       to do and what is not, and whether we can run the routine quickly and
       often. In a future post, I will show how we can use this to train a neural
       network to learn how to map vanilla quotes to Heston parameters. This is a
-      practitioner approach <a href="#ref7">[7]</a> to calibrate models which in
+      practitioner approach <a href="#ref7">[7]</a><span class="marginnote">7. Hernandez, A. (2016), "Model Calibration with Neural Networks," <i>Risk</i>, available at <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2812140">SSRN</a>.</span> to calibrate models which in
       fact do not lend themselves to fast computation: learn the map from market
       quotes to model parameters and use it as a good warm start for the
       calibration routine. Of course, the training set has to come from
       somewhere, and if we aim to generate a large one, we better use a fast
       pricing engine. Liu, Oosterlee and Bohte
-      <a href="#ref8">[8]</a> generate theirs for the Heston model with the COS
+      <a href="#ref8">[8]</a><span class="marginnote">8. Liu, S., Oosterlee, C. W. and Bohte, S. M. (2019), "Pricing Options and Computing Implied Volatilities using Neural Networks," <i>Risks</i>, 7(1), 16.</span> generate theirs for the Heston model with the COS
       method itself, but one could be forced to use slower methods for more 
       complex models that do not have such semi-analytic methods available.
       

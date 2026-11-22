@@ -1,0 +1,350 @@
+/* Draft stylesheet: off-white page, text column plus a right margin for
+   notes and figures (mockup C). See mockups/NOTES.md. */
+
+:root {
+  --bg: #f2f0ea;
+  --fg: #2a2a2a;
+  --muted: #5e5e5e;
+  --rule: #d6d2c8;
+  --link: #1611B9;
+  --main: 680px;   /* text column */
+  --gap: 44px;     /* space between text and margin */
+  --side: 400px;   /* margin column */
+  --total: calc(var(--main) + var(--gap) + var(--side));
+}
+
+html {
+  background: var(--bg);
+  scroll-behavior: smooth;
+}
+
+/* body is the text column; the right padding holds the margin column */
+body {
+  max-width: var(--main);
+  margin: 40px auto;
+  padding: 0 calc(16px + var(--gap) + var(--side)) 0 16px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 18px/1.55 -apple-system, BlinkMacSystemFont,
+               'avenir next', avenir,
+               'Segoe UI',
+               'lucida grande',
+               'helvetica neue', helvetica,
+               'Fira Sans',
+               roboto, noto,
+               'Droid Sans',
+               cantarell, oxygen, ubuntu,
+               'franklin gothic medium', 'century gothic',
+               'Liberation Sans',
+               sans-serif;
+}
+
+h1, h2, h3 {
+  line-height: 1.2;
+}
+
+h1 {
+  text-align: center;
+}
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* matplotlib figures have an opaque white background; multiply makes it
+   take the page colour. Remove once figures are saved with transparent=True. */
+img {
+  mix-blend-mode: multiply;
+}
+
+/* ---------- margin content ---------- */
+
+/* numbered sidenote: <span class="snref"></span><span class="sidenote">…</span> */
+body { counter-reset: sn; }
+.snref { counter-increment: sn; }
+.snref::after {
+  content: counter(sn);
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+  color: var(--link);
+}
+.sidenote::before {
+  content: counter(sn) ". ";
+  color: var(--link);
+}
+
+/* unnumbered: <span class="marginnote">…</span> */
+.sidenote,
+.marginnote {
+  display: block;
+  float: right;
+  clear: right;
+  width: var(--side);
+  margin-right: calc(-1 * (var(--side) + var(--gap)));
+  margin-top: 0.2em;
+  margin-bottom: 1em;
+  font-size: 0.78em;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.marginnote ol,
+.marginnote ul {
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+/* figure in the margin (default):
+   <figure><img …><figcaption>…</figcaption></figure> */
+figure {
+  float: right;
+  clear: right;
+  width: var(--side);
+  margin: 0.3em calc(-1 * (var(--side) + var(--gap))) 1.5em 0;
+}
+figure img {
+  display: block;
+  width: 100%;
+}
+figcaption {
+  margin-top: 0.5em;
+  font-size: 0.78em;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* figure in the text column, caption in the margin:
+   <figure class="main"><figcaption>…</figcaption><img …></figure> */
+figure.main {
+  float: none;
+  width: auto;
+  margin: 1.5em 0;
+}
+figure.main figcaption {
+  float: right;
+  clear: right;
+  width: var(--side);
+  margin: 0 calc(-1 * (var(--side) + var(--gap))) 0 0;
+}
+
+/* carousel: several images in one figure slot, switched by buttons
+   (carousel.js). Usually used with figure.main. */
+.carousel-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.6em;
+  font-size: 0.85em;
+}
+.carousel-tabs button {
+  font: inherit;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 2px 12px;
+  cursor: pointer;
+}
+.carousel-tabs button[aria-pressed="true"] {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+.carousel:not(.ready) .carousel-tabs {
+  display: none;            /* no script: show everything, no buttons */
+}
+.carousel.ready .slide:not(.active),
+.carousel.ready .slide-cap:not(.active) {
+  display: none;
+}
+
+/* spans text column and margin */
+body > .full {
+  width: var(--total);
+  box-sizing: border-box;
+}
+
+/* margin item placed in the text column instead */
+.sidenote.inline,
+.marginnote.inline {
+  float: none;
+  width: auto;
+  margin: 0.6em 0 1em;
+  padding-left: 0.8em;
+  border-left: 2px solid var(--rule);
+}
+
+/* narrow screens: the margin moves into the text column */
+@media screen and (max-width: 1156px) {
+  .sidenote,
+  .marginnote,
+  figure,
+  figure.main figcaption {
+    float: none;
+    width: auto;
+    margin: 0.6em 0 1em;
+  }
+  .sidenote,
+  .marginnote {
+    padding-left: 0.8em;
+    border-left: 2px solid var(--rule);
+  }
+  figure {
+    margin: 1.5em 0;
+  }
+  body {
+    padding-right: 16px;
+  }
+  body > .full {
+    width: auto;
+  }
+}
+
+/* ---------- carried over from fstyle.css ---------- */
+
+@media screen and (max-width: 480px) {
+  .navigation li a {
+    padding: 6px 4px;
+    font-size: 0.9rem;
+  }
+}
+
+.inner {
+  position: relative;
+  max-width: 800px;
+  padding: 20px 10px;
+  margin: 0 auto;
+}
+
+.navigation {
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  list-style: none;
+  flex-wrap: wrap;
+  padding-left: 0px;
+}
+
+.navigationjus {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  list-style: none;
+  flex-wrap: wrap;
+  padding-left: 0px;
+}
+
+.navigation div {
+  color: rgb(0, 0, 0);
+  padding: 8px 16px;
+}
+
+.navigation li a {
+  display: block;
+  color: var(--link);
+  padding: 8px 8px;
+  text-decoration: none;
+}
+
+.navigation li a:hover {
+  color: var(--link);
+}
+
+.subnavigation {
+  display: none;
+  position: absolute;
+  padding: 0;
+  list-style: none;
+  background-color: var(--bg);
+  z-index: 1;
+}
+
+.navigation li:hover .subnavigation {
+  display: block;
+}
+
+a {
+  position: relative;
+  text-decoration: none;
+  color: var(--link);
+}
+
+/* Nice animations by Gabriel Cojea */
+a::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--link);
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  a:hover::before {
+    left: 0;
+    right: auto;
+    width: 100%;
+  }
+}
+
+#myBtn {
+  display: block;
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  z-index: 99;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  color: rgb(111, 111, 111);
+  cursor: pointer;
+  padding: 15px;
+  font-size: 20px;
+}
+
+#myBtn:hover {
+  color: rgb(0, 0, 0);
+}
+
+.centered-table {
+  margin-left: auto;
+  margin-right: auto;
+  border-collapse: collapse;
+}
+
+.centered-table td:nth-child(2),
+.centered-table th:nth-child(2) {
+  text-align: right;
+}
+
+.centered-table thead tr {
+  border-bottom: 1px solid #000;
+  border-top: 2px solid #000;
+}
+
+.centered-table tbody tr:last-child {
+  border-bottom: 2px solid #000;
+}
+
+/* old-style caption under an image in the text column */
+.caption {
+  max-width: 500px;
+  margin: 0.5em auto 0;
+  font-size: 0.85em;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.page-footer {
+  clear: both;   /* start below any figure still in the margin */
+  margin-top: 4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: justify;
+  line-height: 1.4;
+}

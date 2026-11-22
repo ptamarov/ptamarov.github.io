@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -75,6 +75,36 @@
     <!-- reading-time -->
     <p class="aligncenter"><i>About 4 minutes to read (512 words)</i></p>
     <!-- /reading-time -->
+   <figure>
+      <img src="./images/ig_coll_1.svg" alt="">
+      <figcaption><b>Figure 1.</b> $\mathrm{IG}(\mu=1,\lambda=1)$.
+            <em>Top:</em> CDF computed analytically in Go (red dashed) vs. SciPy (blue solid);
+            circles are the 9 stochastic collocation nodes (two far-tail nodes omitted from the plot).
+            <em>Bottom:</em> PPF approximation error $\hat{F}^{-1}(p)-F^{-1}(p)$.</figcaption>
+    </figure>
+        <figure>
+      <img src="./images/ig_coll_2.svg" alt="">
+      <figcaption><b>Figure 2.</b> $\mathrm{IG}(\mu=1,\lambda=3)$: higher shape parameter,
+            lighter tail.</figcaption>
+    </figure>
+        <figure>
+      <img src="./images/ig_coll_3.svg" alt="">
+      <figcaption><b>Figure 3.</b> $\mathrm{IG}(\mu=3,\lambda=1)$: larger mean,
+            heavier tail.</figcaption>
+    </figure>
+
+        <p>
+          
+                  Finally, let us check how the error behaves as we produce more collocation 
+                  points:
+
+        </p>
+
+        <figure>
+      <img src="./images/ig_coll_npts.svg" alt="">
+      <figcaption><b>Figure 4.</b> PPF approximation error (log scale) for $\mathrm{IG}(\mu=3,\lambda=1)$
+            as the number of collocation nodes increases from 9 to 13 to 17.</figcaption>
+    </figure>
 
     <h3>1. Problem statement: sample tough distributions accurately and fast</h3>
 
@@ -139,45 +169,7 @@
         quite decent using 9 collocation points:
       </p>
 
-        <div>
-          <img src='./images/ig_coll_1.svg' style="display:block; margin:auto; width:85%;"/>
-          <div class="caption" style="text-align:center">
-            <b>Figure 1.</b> $\mathrm{IG}(\mu=1,\lambda=1)$.
-            <em>Top:</em> CDF computed analytically in Go (red dashed) vs. SciPy (blue solid);
-            circles are the 9 stochastic collocation nodes (two far-tail nodes omitted from the plot).
-            <em>Bottom:</em> PPF approximation error $\hat{F}^{-1}(p)-F^{-1}(p)$.
-          </div>
-        </div>
-        <div>
-          <img src='./images/ig_coll_2.svg' style="display:block; margin:auto; width:85%;"/>
-          <div class="caption" style="text-align:center">
-            <b>Figure 2.</b> $\mathrm{IG}(\mu=1,\lambda=3)$: higher shape parameter,
-            lighter tail.
-          </div>
-        </div>
-        <div>
-          <img src='./images/ig_coll_3.svg' style="display:block; margin:auto; width:85%;"/>
-          <div class="caption" style="text-align:center">
-            <b>Figure 3.</b> $\mathrm{IG}(\mu=3,\lambda=1)$: larger mean,
-            heavier tail.
-          </div>
-        </div>
-
-        <p>
-          
-                  Finally, let us check how the error behaves as we produce more collocation 
-                  points:
-
-        </p>
-
-        <div>
-          <img src='./images/ig_coll_npts.svg' style="display:block; margin:auto; width:100%;"/>
-          <div class="caption" style="text-align:center">
-            <b>Figure 4.</b> PPF approximation error (log scale) for $\mathrm{IG}(\mu=3,\lambda=1)$
-            as the number of collocation nodes increases from 9 to 13 to 17.
-          </div>
-        </div>
-
+     
 
 <h3>References</h3>
 

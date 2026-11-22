@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -93,7 +93,7 @@
       <p>
         This is essentially a Bergomi one factor model,
       but the use of the exponential Ornstein&ndash;Uhlenbeck volatility goes
-      back at least to Scott <a href="#ref1">[1]</a>. The factor $u$ is
+      back at least to Scott <a href="#ref1">[1]</a><span class="marginnote">1. Scott, L. O. (1987), "Option pricing when the variance changes randomly: theory, estimation, and an application," <i>Journal of Financial and Quantitative Analysis</i>, 22(4), 419&ndash;438.</span>. The factor $u$ is
       Gaussian, and we get that $\mathbb E(v_t) = v_0\,
       e^{L(1-e^{-\kappa t})}$. When $L = 0$, the volatility is centred on $v_0$
       at all times, and $v_0$ multiplies the whole volatility path. The
@@ -116,7 +116,7 @@
       explained in the original post. After the payoff is computed, a backward
       pass computes the adjoints of the leaves, and their averages over the paths
       are the pathwise estimates of the first-order Greeks. This is the pathwise
-      method of Broadie and Glasserman <a href="#ref2">[2]</a>, and its
+      method of Broadie and Glasserman <a href="#ref2">[2]</a><span class="marginnote">2. Broadie, M. and Glasserman, P. (1996), "Estimating security price derivatives using simulation," <i>Management Science</i>, 42(2), 269&ndash;285.</span>, and its
       combination with adjoints was popularised by Giles and Glasserman <a
       href="#ref3">[3]</a>. It requires the payoff to be Lipschitz in the
       inputs, which is true for the two calls below, but not for a digital or a
@@ -254,7 +254,7 @@
       $\delta S$, as we computed above. When explaining a realised one-day PnL, one must use the
       exact $\delta A$, since that is how much the input $A$ actually moves. The
       last term vanishes for the plain call, which of course does not depend on
-      $A$ at all. Carr and Lee <a href="#ref4">[4]</a> survey the pricing and
+      $A$ at all. Carr and Lee <a href="#ref4">[4]</a><span class="marginnote">4. Carr, P. and Lee, R. (2009), "Volatility derivatives," <i>Annual Review of Financial Economics</i>, 1, 319&ndash;339.</span> survey the pricing and
       hedging of this and other volatility derivatives.
     </p>
 
@@ -290,11 +290,13 @@
       plays the role of the number of shares, and the sensitivity to volatility
       plays the role of the delta. 
       </p> 
-
+    <figure>
+      <img src="images/202611_sensitivities.svg" alt="Six panels comparing 10 plain calls with the realised-volatility call with notional 696: PV against spot, initial volatility, mean reversion, volatility of volatility and correlation, each moved alone from its base value, and V_u divided by initial volatility for the realised-volatility call, with the base values marked by dashed lines">
+    </figure>
       <p>
       Volatility and variance swaps are sized in the same way, by a vega
       notional: the amount paid per volatility point near the strike, see <a
-      href="#ref5">[5]</a>, <a href="#ref6">[6]</a>. Since the volatility moves
+      href="#ref5">[5]</a>, <a href="#ref6">[6]</a><span class="marginnote">6. Bossu, S., Strasser, E. and Guichard, R. (2005), "Just what you need to know about variance swaps," JPMorgan Equity Derivatives.</span>. Since the volatility moves
       through $u$ in the explain, we measure the sensitivity to volatility by
       $V_u$, the change in value for a relative move of the instantaneous
       volatility. The $V_u$ risk of one plain call is $6.62$, and that of the
@@ -330,16 +332,7 @@
       $K_\sigma = 40\%$, so that $V_u$ itself behaves like a cash delta.
     </p>
 
-    <div style="text-align: center">
-      <img src="images/202611_sensitivities.svg"
-           alt="Six panels comparing 10 plain calls with the realised-volatility
-                call with notional 696: PV against spot, initial volatility,
-                mean reversion, volatility of volatility and correlation, each
-                moved alone from its base value, and V_u divided by initial
-                volatility for the realised-volatility call, with the base
-                values marked by dashed lines"
-           style="max-width: 100%; height: auto;">
-    </div>
+
 
     <p>
       <b>Reading the Greeks.</b> The two positions match on $V_u$ but not

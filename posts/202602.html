@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="google-site-verification"
           content="KX0VgvO8-j7yhefGzgW5tr0hZNU_eCzHTxTlQv5nwMw" />
-    <link rel="stylesheet" href="../fstyle.css">
+    <link rel="stylesheet" href="../fstyle2.css">
     <script type="text/x-mathjax-config">MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});</script>
     <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-MML-AM_CHTML">
     </script>
@@ -25,7 +25,7 @@
         <a href="https://ptamarov.github.io/" class="navigation">Home page</a>
       </li>
       <li>
-        <a href="/posts/202603.html" class="navigation">Next post</a>
+        <a href="./202603.html" class="navigation">Next post</a>
       </li>
     </ul>
 
@@ -131,11 +131,9 @@
     below, we show the anchor points, using a 
     fictitious volatility smile.
 
-    <div style="text-align: center">
-      <img
-            src='./images/VannaVolga_CostPerVega.png'
-            width="500vw"/>
-    </div>
+    <figure>
+      <img src="./images/VannaVolga_CostPerVega.png" alt="">
+    </figure>
 
     </p>
 
@@ -174,7 +172,20 @@
       <em>Proof.</em> The equation $A^\top y = c$ says precisely that 
       the equation above holds for $x_1, x_2$ and $x_3$. ||
     </p>
-     
+     <figure>
+      <img src="./images/VannaVolga_MarketQuotes.png" alt="">
+      <figcaption><b>Figure 1.</b>  Market and model premium quotes, and the 
+       three anchor points used to fit the model. The absolute error is shown in 
+       green.</figcaption>
+    </figure>
+     <figure>
+      <img src="./images/VannaVolga_VolQuotes.png" alt="">
+      <figcaption><b>Figure 2.</b> Market and model volatility quotes, and 
+                 the absolute error in basis points. The implied volatility of the model was 
+                 backed out from the quotes provided by the model; it is able to recover the 
+                 original synthetic smile with very good precision.</figcaption>
+    </figure>
+
      <p>
       <b>Lemma 2.</b><em>(Portfolio weights pricing)</em>
       Suppose that $(x_1,x_2,x_3)$ are three different log-moneyness points, 
@@ -217,33 +228,7 @@
    <br>
    <br>
    <br>
- <div style="text-align: center">
-   <img
-   src='./images/VannaVolga_MarketQuotes.png'
-   width="500vw"/>
-   <br>
-     <div class="caption">
-       <b>Figure 1.</b>  Market and model premium quotes, and the 
-       three anchor points used to fit the model. The absolute error is shown in 
-       green.
-      </div>
-  </div>
-   <br>
-   <br>
-   <br>
-     <div style="text-align: center">
-      <img
-            src='./images/VannaVolga_VolQuotes.png'
-            width="500vw"/>
-               <br>
-               <div class="caption">
-                 <b>Figure 2.</b> Market and model volatility quotes, and 
-                 the absolute error in basis points. The implied volatility of the model was 
-                 backed out from the quotes provided by the model; it is able to recover the 
-                 original synthetic smile with very good precision.
-                </div>
-    </div>
-
+ 
     <h3>References</h3>
 
     For further 
